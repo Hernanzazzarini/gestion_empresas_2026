@@ -1,0 +1,23 @@
+# ─── DEPENDENCIAS ────────────────────────────────────────────────────────────
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# ─── VARIABLES DE ENTORNO (contienen credenciales) ───────────────────────────
+.env
+client/.env
+server/.env
+
+# ─── FOTOS SUBIDAS POR USUARIOS ──────────────────────────────────────────────
+uploads/
+
+# ─── BUILD DEL FRONTEND ──────────────────────────────────────────────────────
+client/dist/
+
+# ─── LOGS ────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── SISTEMA OPERATIVO ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
