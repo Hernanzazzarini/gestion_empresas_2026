@@ -16,19 +16,12 @@ const modules = [
   {
     icon: '🛡️',
     title: 'Inocuidad',
-    description: 'Control de inspecciones, auditorías y aprobaciones de inocuidad.',
+    description: 'Tratamiento de No conformidades,Reclamos,Capacitaciones,Mapeo documentos.',
     color: '#10b981',
     available: false,
     links: [],
   },
-  {
-    icon: '📦',
-    title: 'Depósito',
-    description: 'Stock, movimientos de mercadería y control de inventario.',
-    color: '#3b82f6',
-    available: false,
-    links: [],
-  },
+  
   {
     icon: '🚛',
     title: 'Logística',
@@ -37,29 +30,18 @@ const modules = [
     available: true,
     links: [
       { label: 'Control Contenedores', to: '/logistica/contenedores' },
+      { label: 'Control de stock', to: '/logistica/stock' },
+      { label: 'Reporte de stock', to: '/logistica/Reporte-stock' },
+
     ],
   },
-  {
-    icon: '👥',
-    title: 'Recursos Humanos',
-    description: 'Personal, asistencia, legajos y liquidaciones.',
-    color: '#a855f7',
-    available: false,
-    links: [],
-  },
-  {
-    icon: '📊',
-    title: 'Reportes',
-    description: 'Indicadores, estadísticas y exportación de datos.',
-    color: '#64748b',
-    available: false,
-    links: [],
-  },
+  
+  
 ]
 
 const stats = [
   { label: 'Módulos activos',  value: '2', icon: '✅' },
-  { label: 'En desarrollo',    value: '4', icon: '🚧' },
+  { label: 'En desarrollo',    value: '1', icon: '🚧' },
   { label: 'Usuarios',         value: '—', icon: '👤' },
 ]
 

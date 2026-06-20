@@ -6,6 +6,8 @@ const navItems = [
   { to: '/mantenimiento/ots', label: 'Órdenes de Trabajo', icon: '🔧' },
   { to: '/mantenimiento/reportes', label: 'Reportes OTs', icon: '📊' },
   { to: '/logistica/contenedores',   label: 'Control Contenedores', icon: '🚛' },
+  { to: '/logistica/stock',          label: 'Control de Stock',     icon: '📦' },
+  { to: '/logistica/reporte-stock',  label: 'Reporte de Stock',     icon: '📋' },
   
   
 ]
