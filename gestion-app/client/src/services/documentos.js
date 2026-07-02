@@ -6,6 +6,7 @@ export const fetchDocumentos = async () => {
   return res.json()
 }
 
+// Retorna { documento, autoObsoletado, eliminadoId }
 export const crearDocumento = async (data) => {
   const res = await fetch(BASE_URL, {
     method:  'POST',
@@ -19,6 +20,7 @@ export const crearDocumento = async (data) => {
   return res.json()
 }
 
+// Retorna { documento, autoObsoletado, eliminadoId }
 export const actualizarDocumento = async (id, data) => {
   const res = await fetch(`${BASE_URL}/${id}`, {
     method:  'PATCH',

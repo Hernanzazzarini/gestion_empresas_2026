@@ -8,6 +8,7 @@ const contenedoresRoutes = require('./src/routes/contenedores')
 const uploadsRoutes      = require('./src/routes/uploads')
 const stockRoutes        = require('./src/routes/stock')
 const documentosRoutes   = require('./src/routes/documentos')
+const { iniciarCron }    = require('./src/cron')
 
 const app  = express()
 const PORT = process.env.PORT || 3000
@@ -34,4 +35,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`)
+  iniciarCron()
 })

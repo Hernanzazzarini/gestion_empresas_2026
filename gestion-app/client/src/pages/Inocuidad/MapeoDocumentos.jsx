@@ -406,9 +406,14 @@ function ModalArchivo({ doc, onActualizar, onClose }) {
 
 // ─── Fila de la tabla ──────────────────────────────────────────────────────────
 function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
-  const [hover, setHover] = useState(false)
-  const dias = diasHastaRevision(doc.fechaRevision)
+  const [hover,        setHover]        = useState(false)
+  const [verEmails,    setVerEmails]    = useState(false)
+  const dias      = diasHastaRevision(doc.fechaRevision)
   const colAlerta = colorAlerta(dias)
+
+  const tieneNotif  = doc.estado === 'vigente' && doc.fechaRevision && doc.destinatariosEmail?.length > 0
+  const soloFecha   = doc.estado === 'vigente' && doc.fechaRevision && !tieneNotif
+  const yaEnviada   = tieneNotif && doc.notificacionEnviada
 
   return (
     <tr
@@ -422,7 +427,7 @@ function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
         </span>
       </td>
       <td style={tdStyle}>
-        <div style={{ fontWeight: 600, maxWidth: 220 }}>{doc.nombre}</div>
+        <div style={{ fontWeight: 600, maxWidth: 200 }}>{doc.nombre}</div>
       </td>
       <td style={{ ...tdStyle, textAlign: 'center', fontFamily: "'Courier New', monospace", color: C.textSecondary }}>
         {doc.numeroRevision}
@@ -446,20 +451,71 @@ function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
           {FORMATOS.find(f => f.value === doc.formatoArchivo)?.label ?? doc.formatoArchivo}
         </span>
       </td>
+
+      {/* Próx. revisión */}
       <td style={{ ...tdStyle, textAlign: 'center' }}>
         {doc.fechaRevision ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <span style={{ fontSize: 12, color: colAlerta, fontWeight: 700 }}>
               {dias < 0 ? `Vencido hace ${Math.abs(dias)}d` : `${dias}d`}
             </span>
-            <span style={{ fontSize: 10, color: C.textSecondary }}>
-              {doc.fechaRevision}
-            </span>
+            <span style={{ fontSize: 10, color: C.textSecondary }}>{doc.fechaRevision}</span>
           </div>
         ) : (
           <span style={{ fontSize: 12, color: C.textMuted }}>—</span>
         )}
       </td>
+
+      {/* Notificaciones */}
+      <td style={{ ...tdStyle, minWidth: 160 }}>
+        {doc.estado === 'obsoleto' ? (
+          <span style={{ fontSize: 11, color: C.textMuted, fontStyle: 'italic' }}>Desactivadas</span>
+        ) : tieneNotif ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                color:       yaEnviada ? C.textSecondary : '#10b981',
+                background:  yaEnviada ? `${C.textSecondary}18` : '#10b98118',
+                border:      `1px solid ${yaEnviada ? C.textSecondary + '44' : '#10b98144'}`,
+              }}>
+                {yaEnviada ? '✓ Enviada' : '🔔 Pendiente'}
+              </span>
+              <button
+                onClick={() => setVerEmails(p => !p)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 11, color: C.textSecondary, padding: 0, fontFamily: 'inherit',
+                }}
+              >
+                {verEmails ? '▲ ocultar' : '▼ ver emails'}
+              </button>
+            </div>
+            {verEmails && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {doc.destinatariosEmail.map(email => (
+                  <span key={email} style={{
+                    fontSize: 11, color: C.textSecondary,
+                    background: C.bg, borderRadius: 4, padding: '1px 6px',
+                    border: `1px solid ${C.border}`, wordBreak: 'break-all',
+                  }}>
+                    {email}
+                  </span>
+                ))}
+                <span style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>
+                  Alerta {doc.diasAlerta}d antes
+                </span>
+              </div>
+            )}
+          </div>
+        ) : soloFecha ? (
+          <span style={{ fontSize: 11, color: C.textSecondary }}>📅 Sin destinatarios</span>
+        ) : (
+          <span style={{ fontSize: 11, color: C.textMuted }}>—</span>
+        )}
+      </td>
+
+      {/* Archivo */}
       <td style={tdStyle}>
         {doc.archivoPath ? (
           <span style={{ fontSize: 12, color: C.green }}>✓ Adjunto</span>
@@ -467,6 +523,8 @@ function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
           <span style={{ fontSize: 12, color: C.textMuted }}>Sin archivo</span>
         )}
       </td>
+
+      {/* Acciones */}
       <td style={{ ...tdStyle, textAlign: 'center' }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
           <button
@@ -618,15 +676,26 @@ export default function MapeoDocumentos() {
     }
   }
 
+  const aplicarCambiosDocs = (prev, { documento, autoObsoletado, eliminadoId }) => {
+    let lista = [...prev]
+    if (eliminadoId)    lista = lista.filter(d => d.id !== eliminadoId)
+    if (autoObsoletado) lista = lista.map(d => d.id === autoObsoletado.id ? autoObsoletado : d)
+    const existe = lista.find(d => d.id === documento.id)
+    lista = existe
+      ? lista.map(d => d.id === documento.id ? documento : d)
+      : [...lista, documento]
+    return lista.sort((a, b) => a.codigo.localeCompare(b.codigo) || a.estado.localeCompare(b.estado))
+  }
+
   const handleCrear = async (data) => {
-    const nuevo = await svc.crearDocumento(data)
-    setDocumentos(prev => [...prev, nuevo].sort((a, b) => a.codigo.localeCompare(b.codigo)))
+    const result = await svc.crearDocumento(data)
+    setDocumentos(prev => aplicarCambiosDocs(prev, result))
     setModalNuevo(false)
   }
 
   const handleActualizar = async (data) => {
-    const actualizado = await svc.actualizarDocumento(docEditar.id, data)
-    setDocumentos(prev => prev.map(d => d.id === actualizado.id ? actualizado : d))
+    const result = await svc.actualizarDocumento(docEditar.id, data)
+    setDocumentos(prev => aplicarCambiosDocs(prev, result))
     setDocEditar(null)
   }
 
@@ -764,6 +833,7 @@ export default function MapeoDocumentos() {
                   <th style={{ ...thStyle, textAlign: 'center' }}>Copias</th>
                   <th style={thStyle}>Formato</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Próx. revisión</th>
+                  <th style={thStyle}>Notificaciones</th>
                   <th style={thStyle}>Archivo</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Acciones</th>
                 </tr>
