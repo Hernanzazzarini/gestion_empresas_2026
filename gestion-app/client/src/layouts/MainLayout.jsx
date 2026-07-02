@@ -8,8 +8,7 @@ const navItems = [
   { to: '/logistica/contenedores',   label: 'Control Contenedores', icon: '🚛' },
   { to: '/logistica/stock',          label: 'Control de Stock',     icon: '📦' },
   { to: '/logistica/reporte-stock',  label: 'Reporte de Stock',     icon: '📋' },
-  
-  
+  { to: '/inocuidad/mapeo-documentos', label: 'Mapeo de Documentos', icon: '🛡️' },
 ]
 
 export default function MainLayout() {

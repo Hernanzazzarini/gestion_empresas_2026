@@ -16,10 +16,12 @@ const modules = [
   {
     icon: '🛡️',
     title: 'Inocuidad',
-    description: 'Tratamiento de No conformidades,Reclamos,Capacitaciones,Mapeo documentos.',
+    description: 'Tratamiento de No conformidades, Reclamos, Capacitaciones, Mapeo de documentos.',
     color: '#10b981',
-    available: false,
-    links: [],
+    available: true,
+    links: [
+      { label: 'Mapeo de Documentos', to: '/inocuidad/mapeo-documentos' },
+    ],
   },
   
   {
@@ -31,7 +33,7 @@ const modules = [
     links: [
       { label: 'Control Contenedores', to: '/logistica/contenedores' },
       { label: 'Control de stock', to: '/logistica/stock' },
-      { label: 'Reporte de stock', to: '/logistica/Reporte-stock' },
+      { label: 'Reporte de stock', to: '/logistica/reporte-stock' },
 
     ],
   },

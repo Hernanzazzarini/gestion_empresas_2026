@@ -7,6 +7,7 @@ const otRoutes           = require('./src/routes/ots')
 const contenedoresRoutes = require('./src/routes/contenedores')
 const uploadsRoutes      = require('./src/routes/uploads')
 const stockRoutes        = require('./src/routes/stock')
+const documentosRoutes   = require('./src/routes/documentos')
 
 const app  = express()
 const PORT = process.env.PORT || 3000
@@ -25,6 +26,7 @@ app.use('/api/ots',          otRoutes)
 app.use('/api/contenedores', contenedoresRoutes)
 app.use('/api/uploads',      uploadsRoutes)
 app.use('/api/stock',        stockRoutes)
+app.use('/api/documentos',   documentosRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API GestiónPro funcionando ✅' })
