@@ -27,7 +27,7 @@ const modules = [
   {
     icon: '🚛',
     title: 'Logística',
-    description: 'Control de contenedores, transportes y carga de exportación.',
+    description: 'Control de contenedores, transportes y carga de exportación,control de stock.',
     color: '#ef4444',
     available: true,
     links: [
@@ -37,13 +37,23 @@ const modules = [
 
     ],
   },
-  
-  
+  {
+    icon: '🤝',
+    title: 'Proveedores',
+    description: 'Registro de proveedores, gestión de documentación adjunta y alertas de vencimientos.',
+    color: '#3b82f6',
+    available: true,
+    links: [
+      { label: 'Seguimiento de Proveedores', to: '/proveedores' },
+    ],
+  },
+
+
 ]
 
 const stats = [
-  { label: 'Módulos activos',  value: '2', icon: '✅' },
-  { label: 'En desarrollo',    value: '1', icon: '🚧' },
+  { label: 'Módulos activos',  value: '4', icon: '✅' },
+  { label: 'En desarrollo',    value: '0', icon: '🚧' },
   { label: 'Usuarios',         value: '—', icon: '👤' },
 ]
 

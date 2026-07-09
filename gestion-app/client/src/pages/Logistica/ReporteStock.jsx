@@ -172,7 +172,10 @@ function generarPDF(lotesFiltrados, filtros) {
         data.cell.styles.lineColor = COLOR.acento
       }
     },
-    margin: { left: 10, right: 10 },
+    // Pinta el fondo negro en las páginas que la tabla cree al desbordarse.
+    // La página 1 (pageNumber === 1) ya tiene fondo + encabezado, no la tocamos.
+    willDrawPage: (data) => { if (data.pageNumber > 1) fondo() },
+    margin: { left: 10, right: 10, top: 10, bottom: 14 },
   })
 
   y = doc.lastAutoTable.finalY + 14
@@ -222,7 +225,8 @@ function generarPDF(lotesFiltrados, filtros) {
         2: { cellWidth: 20, halign: 'center', textColor: COLOR.gris },
       },
       tableWidth: 100,
-      margin: { left: 10 },
+      willDrawPage: (data) => { if (data.pageNumber > 1) fondo() },
+      margin: { left: 10, top: 10, bottom: 14 },
     })
   }
 

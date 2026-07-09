@@ -8,7 +8,9 @@ const contenedoresRoutes = require('./src/routes/contenedores')
 const uploadsRoutes      = require('./src/routes/uploads')
 const stockRoutes        = require('./src/routes/stock')
 const documentosRoutes   = require('./src/routes/documentos')
+const proveedoresRoutes  = require('./src/routes/proveedores')
 const { iniciarCron }    = require('./src/cron')
+const { errorHandler }   = require('./src/middleware/errorHandler')
 
 const app  = express()
 const PORT = process.env.PORT || 3000
@@ -28,10 +30,14 @@ app.use('/api/contenedores', contenedoresRoutes)
 app.use('/api/uploads',      uploadsRoutes)
 app.use('/api/stock',        stockRoutes)
 app.use('/api/documentos',   documentosRoutes)
+app.use('/api/proveedores',  proveedoresRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API GestiónPro funcionando ✅' })
 })
+
+// Manejo de errores centralizado — debe ir después de todas las rutas
+app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`)

@@ -7,6 +7,7 @@ import Contenedores from '../pages/Logistica/Contenedores'
 import StockLotes from '../pages/Logistica/StockLotes'
 import ReporteStock from '../pages/Logistica/ReporteStock'
 import MapeoDocumentos from '../pages/Inocuidad/MapeoDocumentos'
+import Proveedores from '../pages/Proveedores/Proveedores'
 
 export default function AppRouter() {
   return (
@@ -20,6 +21,7 @@ export default function AppRouter() {
           <Route path="/logistica/stock" element={<StockLotes />} />
           <Route path="/logistica/reporte-stock" element={<ReporteStock />} />
           <Route path="/inocuidad/mapeo-documentos" element={<MapeoDocumentos />} />
+          <Route path="/proveedores" element={<Proveedores />} />
         </Route>
       </Routes>
     </BrowserRouter>

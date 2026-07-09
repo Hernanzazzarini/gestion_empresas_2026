@@ -418,6 +418,7 @@ export default function StockLotes() {
   const [modalNuevo, setModalNuevo]   = useState(false)
   const [loteReducir, setLoteReducir] = useState(null)
   const [loteBajaTotal, setLoteBajaTotal] = useState(null)
+  const [filtro, setFiltro]           = useState('')
 
   useEffect(() => { cargar() }, [])
 
@@ -459,6 +460,21 @@ export default function StockLotes() {
   const totalEnvases   = lotes.reduce((s, l) => s + Number(l.stock_envases),   0)
   const totalKilos     = lotes.reduce((s, l) => s + Number(l.kilos_totales),    0)
   const totalToneladas = totalKilos / 1000
+
+  // ── Filtro de búsqueda (N° lote / calibre / ubicación) ───────────────────────
+  const q = filtro.trim().toLowerCase()
+  const lotesFiltrados = q
+    ? lotes.filter(l =>
+        l.nro_lote.toLowerCase().includes(q) ||
+        l.calibre.toLowerCase().includes(q) ||
+        l.ubicacion.toLowerCase().includes(q)
+      )
+    : lotes
+
+  // Totales de la tabla (reflejan el filtro para que el pie coincida con lo visible)
+  const filtradoEnvases   = lotesFiltrados.reduce((s, l) => s + Number(l.stock_envases), 0)
+  const filtradoKilos     = lotesFiltrados.reduce((s, l) => s + Number(l.kilos_totales),  0)
+  const filtradoToneladas = filtradoKilos / 1000
 
   // ── Toneladas por calibre ────────────────────────────────────────────────────
   const porCalibre = CALIBRES.reduce((acc, cal) => {
@@ -526,7 +542,29 @@ export default function StockLotes() {
       )}
 
       {/* TOOLBAR */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 360 }}>
+          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: C.textSecondary, pointerEvents: 'none' }}>🔍</span>
+          <input
+            style={{ ...fieldStyle, paddingLeft: 34, paddingRight: filtro ? 34 : 12 }}
+            placeholder="Buscar por N° lote, calibre o ubicación…"
+            value={filtro}
+            onChange={e => setFiltro(e.target.value)}
+          />
+          {filtro && (
+            <button
+              onClick={() => setFiltro('')}
+              aria-label="Limpiar búsqueda"
+              style={{
+                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: C.textSecondary, fontSize: 16, lineHeight: 1, padding: 4,
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
         <Button onClick={() => setModalNuevo(true)}>+ Nuevo Lote</Button>
       </div>
 
@@ -553,7 +591,19 @@ export default function StockLotes() {
         </Card>
       )}
 
-      {!cargando && !error && lotes.length > 0 && (
+      {!cargando && !error && lotes.length > 0 && lotesFiltrados.length === 0 && (
+        <Card style={{ textAlign: 'center', padding: 48 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary }}>
+            Ningún lote coincide con «{filtro.trim()}»
+          </div>
+          <Button variant="secondary" style={{ marginTop: 16 }} onClick={() => setFiltro('')}>
+            Limpiar búsqueda
+          </Button>
+        </Card>
+      )}
+
+      {!cargando && !error && lotesFiltrados.length > 0 && (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -571,7 +621,7 @@ export default function StockLotes() {
                 </tr>
               </thead>
               <tbody>
-                {lotes.map(lote => (
+                {lotesFiltrados.map(lote => (
                   <FilaLote
                     key={lote.id}
                     lote={lote}
@@ -583,17 +633,17 @@ export default function StockLotes() {
               <tfoot>
                 <tr style={{ background: C.surfaceHigh }}>
                   <td colSpan={4} style={{ ...tdStyle, fontWeight: 700, color: C.textSecondary, borderTop: `2px solid ${C.border}` }}>
-                    TOTALES
+                    {q ? `TOTALES (${lotesFiltrados.length} de ${lotes.length})` : 'TOTALES'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: C.accent, fontFamily: "'Courier New', monospace", borderTop: `2px solid ${C.border}` }}>
-                    {fmt(totalEnvases, 0)}
+                    {fmt(filtradoEnvases, 0)}
                   </td>
                   <td style={{ ...tdStyle, borderTop: `2px solid ${C.border}` }} />
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: C.accent, fontFamily: "'Courier New', monospace", borderTop: `2px solid ${C.border}` }}>
-                    {fmt(totalKilos, 3)}
+                    {fmt(filtradoKilos, 3)}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: C.green, fontFamily: "'Courier New', monospace", borderTop: `2px solid ${C.border}` }}>
-                    {fmt(totalToneladas, 3)}
+                    {fmt(filtradoToneladas, 3)}
                   </td>
                   <td style={{ ...tdStyle, borderTop: `2px solid ${C.border}` }} />
                 </tr>
