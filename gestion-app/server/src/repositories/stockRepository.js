@@ -36,6 +36,14 @@ const insert = async (lote) => {
   return result.insertId
 }
 
+const findByNroLote = async (nro_lote) => {
+  const [rows] = await pool.query(
+    'SELECT id FROM stock_lotes WHERE nro_lote = ? LIMIT 1',
+    [nro_lote]
+  )
+  return rows[0] ?? null
+}
+
 // Lee y bloquea la fila (FOR UPDATE) — debe usarse dentro de withTransaction
 const findStockForUpdate = async (conn, id) => {
   const [rows] = await conn.query(
@@ -82,6 +90,7 @@ const withTransaction = async (fn) => {
 module.exports = {
   findAllActivos,
   findById,
+  findByNroLote,
   insert,
   findStockForUpdate,
   setStock,

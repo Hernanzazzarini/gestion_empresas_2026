@@ -26,6 +26,11 @@ const crearLote = async (body) => {
     throw new AppError('Calibre no válido')
   }
 
+  const existente = await repo.findByNroLote(nro_lote.trim())
+  if (existente) {
+    throw new AppError(`El número de lote "${nro_lote.trim()}" ya existe`, 409)
+  }
+
   const envases = Number(stock_envases)
   const kilos   = Number(kilos_por_unidad)
   const anio    = Number(anio_cosecha)
