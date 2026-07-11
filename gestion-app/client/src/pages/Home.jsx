@@ -47,12 +47,23 @@ const modules = [
       { label: 'Seguimiento de Proveedores', to: '/proveedores' },
     ],
   },
+  {
+    icon: '⚠️',
+    title: 'Tratamientos de Desvios',
+    description: 'Seguimiento de desvíos, acciones correctivas y preventivas, análisis de causa raíz y evidencias.',
+    color: '#a855f7',
+    available: true,
+    links: [
+      { label: 'Seguimiento de Desvíos', to: '/inocuidad/desvios' },
+      { label: 'Estadísticas y KPIs',    to: '/inocuidad/desvios/reportes' },
+    ],
+  },
 
 
 ]
 
 const stats = [
-  { label: 'Módulos activos',  value: '4', icon: '✅' },
+  { label: 'Módulos activos',  value: '5', icon: '✅' },
   { label: 'En desarrollo',    value: '0', icon: '🚧' },
   { label: 'Usuarios',         value: '—', icon: '👤' },
 ]

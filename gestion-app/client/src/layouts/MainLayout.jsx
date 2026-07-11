@@ -9,6 +9,8 @@ const navItems = [
   { to: '/logistica/stock',          label: 'Control de Stock',     icon: '📦' },
   { to: '/logistica/reporte-stock',  label: 'Reporte de Stock',     icon: '📋' },
   { to: '/inocuidad/mapeo-documentos', label: 'Mapeo de Documentos', icon: '🛡️' },
+  { to: '/inocuidad/desvios',          label: 'Desvíos',             icon: '⚠️' },
+  { to: '/inocuidad/desvios/reportes', label: 'KPIs Desvíos',        icon: '📈' },
   { to: '/proveedores',                label: 'Proveedores',          icon: '🤝' },
 ]
 
