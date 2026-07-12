@@ -2,6 +2,7 @@ const cron = require('node-cron')
 const { procesarNotificaciones }                           = require('./services/documentosService')
 const { procesarNotificaciones: procesarNotifProveedores } = require('./services/proveedoresService')
 const { procesarNotificaciones: procesarNotifDesvios }     = require('./services/desviosService')
+const { procesarNotificaciones: procesarNotifReclamos }    = require('./services/reclamosService')
 
 // Ejecuta todos los días a las 8:00 AM (hora Argentina, UTC-3)
 // Para cambiar el horario: https://crontab.guru
@@ -28,6 +29,12 @@ const iniciarCron = () => {
       console.log(`[CRON] Desvíos: ${resultDev.mensaje}`)
     } catch (err) {
       console.error(`[CRON] Error notificaciones desvíos: ${err.message}`)
+    }
+    try {
+      const resultRec = await procesarNotifReclamos()
+      console.log(`[CRON] Reclamos: ${resultRec.mensaje}`)
+    } catch (err) {
+      console.error(`[CRON] Error notificaciones reclamos: ${err.message}`)
     }
   }, {
     timezone: 'America/Argentina/Buenos_Aires',

@@ -11,6 +11,8 @@ const navItems = [
   { to: '/inocuidad/mapeo-documentos', label: 'Mapeo de Documentos', icon: '🛡️' },
   { to: '/inocuidad/desvios',          label: 'Desvíos',             icon: '⚠️' },
   { to: '/inocuidad/desvios/reportes', label: 'KPIs Desvíos',        icon: '📈' },
+  { to: '/inocuidad/reclamos',         label: 'Reclamos',             icon: '📣' },
+  { to: '/inocuidad/reclamos/reportes', label: 'KPIs Reclamos',       icon: '📈' },
   { to: '/proveedores',                label: 'Proveedores',          icon: '🤝' },
 ]
 

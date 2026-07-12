@@ -20,7 +20,7 @@ const modules = [
     color: '#10b981',
     available: true,
     links: [
-      { label: 'Mapeo de Documentos', to: '/inocuidad/mapeo-documentos' },
+      { label: 'Mapeo de Documentos',     to: '/inocuidad/mapeo-documentos' },
     ],
   },
   
@@ -49,17 +49,17 @@ const modules = [
   },
   {
     icon: '⚠️',
-    title: 'Tratamientos de Desvios',
-    description: 'Seguimiento de desvíos, acciones correctivas y preventivas, análisis de causa raíz y evidencias.',
+    title: 'Tratamientos de Desvios y Reclamos de clientes',
+    description: 'Seguimiento de desvíos-Reclamos, acciones correctivas y preventivas, análisis de causa raíz y evidencias.',
     color: '#a855f7',
     available: true,
     links: [
       { label: 'Seguimiento de Desvíos', to: '/inocuidad/desvios' },
-      { label: 'Estadísticas y KPIs',    to: '/inocuidad/desvios/reportes' },
+      { label: 'Estadísticas y KPIs Desvios',    to: '/inocuidad/desvios/reportes' },
+      { label: 'Seguimiento de Reclamos',    to: '/inocuidad/reclamos' },
+      { label: 'Estadísticas y KPIs Reclamos', to: '/inocuidad/reclamos/reportes' },
     ],
   },
-
-
 ]
 
 const stats = [

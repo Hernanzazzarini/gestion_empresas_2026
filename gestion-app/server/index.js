@@ -10,6 +10,7 @@ const stockRoutes        = require('./src/routes/stock')
 const documentosRoutes   = require('./src/routes/documentos')
 const proveedoresRoutes  = require('./src/routes/proveedores')
 const desviosRoutes      = require('./src/routes/desvios')
+const reclamosRoutes     = require('./src/routes/reclamos')
 const { iniciarCron }    = require('./src/cron')
 const { errorHandler }   = require('./src/middleware/errorHandler')
 
@@ -33,6 +34,7 @@ app.use('/api/stock',        stockRoutes)
 app.use('/api/documentos',   documentosRoutes)
 app.use('/api/proveedores',  proveedoresRoutes)
 app.use('/api/desvios',      desviosRoutes)
+app.use('/api/reclamos',     reclamosRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API GestiónPro funcionando ✅' })

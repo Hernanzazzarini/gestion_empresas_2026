@@ -9,6 +9,8 @@ import ReporteStock from '../pages/Logistica/ReporteStock'
 import MapeoDocumentos from '../pages/Inocuidad/MapeoDocumentos'
 import Desvios from '../pages/Inocuidad/Desvios'
 import ReportesDesvios from '../pages/Inocuidad/ReportesDesvios'
+import Reclamos from '../pages/Inocuidad/Reclamos'
+import ReportesReclamos from '../pages/Inocuidad/ReportesReclamos'
 import Proveedores from '../pages/Proveedores/Proveedores'
 
 export default function AppRouter() {
@@ -25,6 +27,8 @@ export default function AppRouter() {
           <Route path="/inocuidad/mapeo-documentos" element={<MapeoDocumentos />} />
           <Route path="/inocuidad/desvios" element={<Desvios />} />
           <Route path="/inocuidad/desvios/reportes" element={<ReportesDesvios />} />
+          <Route path="/inocuidad/reclamos" element={<Reclamos />} />
+          <Route path="/inocuidad/reclamos/reportes" element={<ReportesReclamos />} />
           <Route path="/proveedores" element={<Proveedores />} />
         </Route>
       </Routes>
