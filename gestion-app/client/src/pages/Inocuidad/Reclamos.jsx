@@ -733,7 +733,8 @@ const Panel = ({ title, onClose, children, wide }) => (
 export default function Reclamos() {
   const [reclamos, setReclamos]     = useState([])
   const [loading, setLoading]       = useState(true)
-  const [filtros, setFiltros]       = useState({ estado: '', tipo: '', destinatario: '', motivo: '', gravedad: '' })
+  const [filtros, setFiltros]       = useState({ estado: '', tipo: '', destinatario: '', motivo: '', gravedad: '', anio: '' })
+  const [anios, setAnios]           = useState([])
   const [panel, setPanel]           = useState(null) // null | 'form' | 'detalle' | 'edit'
   const [selected, setSelected]     = useState(null)
   const [deletingId, setDeletingId] = useState(null)
@@ -747,6 +748,14 @@ export default function Reclamos() {
   }, [filtros])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Años disponibles para el filtro (una sola carga, sin filtrar)
+  useEffect(() => {
+    listarReclamos().then(data => {
+      const set = new Set(data.map(r => r.anioLote).filter(Boolean))
+      setAnios([...set].sort((a, b) => b - a))
+    }).catch(() => {})
+  }, [])
 
   const setFiltro = (k) => (e) => setFiltros(f => ({ ...f, [k]: e.target.value }))
 
@@ -814,6 +823,10 @@ export default function Reclamos() {
           <option value="">Todas las gravedades</option>
           {GRAVEDADES.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
+        <select style={filterSel} value={filtros.anio}         onChange={setFiltro('anio')}>
+          <option value="">Todos los años</option>
+          {anios.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
       </div>
 
       {/* Tabla */}
@@ -829,7 +842,7 @@ export default function Reclamos() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #2a3045' }}>
-                  {['N° Reclamo', 'Fecha', 'Tipo', 'Cliente', 'Destinatario', 'Motivo', 'Gravedad', 'Estado', 'Adjuntos', 'Acciones'].map(h => (
+                  {['N° Reclamo', 'Fecha', 'Tipo', 'Cliente', 'Destinatario', 'Motivo', 'Lote', 'Año', 'Gravedad', 'Estado', 'Adjuntos', 'Acciones'].map(h => (
                     <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -849,6 +862,8 @@ export default function Reclamos() {
                     </td>
                     <td style={{ padding: '12px 14px', color: '#f1f5f9' }}>{r.destinatario}</td>
                     <td style={{ padding: '12px 14px', color: '#f1f5f9' }}>{r.motivo}</td>
+                    <td style={{ padding: '12px 14px', color: '#f1f5f9', whiteSpace: 'nowrap' }}>{r.loteReclamado || '—'}</td>
+                    <td style={{ padding: '12px 14px', color: '#94a3b8' }}>{r.anioLote || '—'}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <Badge label={r.gravedad} color={gravedadColor[r.gravedad] || '#64748b'} />
                     </td>

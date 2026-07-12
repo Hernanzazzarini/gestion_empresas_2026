@@ -14,6 +14,7 @@ const findAll = async (filtros = {}) => {
   if (filtros.destinatario) { sql += ' AND r.destinatario = ?';  params.push(filtros.destinatario) }
   if (filtros.motivo)       { sql += ' AND r.motivo = ?';        params.push(filtros.motivo) }
   if (filtros.gravedad)     { sql += ' AND r.gravedad = ?';      params.push(filtros.gravedad) }
+  if (filtros.anio)         { sql += ' AND r.anio_lote = ?';     params.push(filtros.anio) }
   sql += ' ORDER BY r.creado_en DESC'
   const [rows] = await pool.query(sql, params)
   return rows

@@ -147,6 +147,17 @@ export default function ReportesReclamos() {
     .map(([destinatario, cantidad]) => ({ name: destinatario, cantidad }))
     .sort((a, b) => b.cantidad - a.cantidad)
 
+  // Por año del lote reclamado
+  const porAnioLote = Object.entries(
+    reclamos.reduce((acc, r) => {
+      const anio = r.anioLote ? String(r.anioLote) : 'Sin año'
+      acc[anio] = (acc[anio] || 0) + 1
+      return acc
+    }, {})
+  )
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([anio, cantidad]) => ({ name: anio, cantidad }))
+
   // Por mes (según fecha del reclamo)
   const porMes = Object.entries(
     reclamos.reduce((acc, r) => {
@@ -298,7 +309,22 @@ export default function ReportesReclamos() {
 
           </div>
 
-          {/* FILA 3 — Tipo + Evolución mensual */}
+          {/* FILA 3 — Año del lote */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 16 }}>
+            <Card>
+              <ChartTitle>Reclamos por Año del lote</ChartTitle>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={porAnioLote} barSize={48}>
+                  <XAxis dataKey="name" tick={{ fill: C.textSecondary, fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: C.textSecondary, fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="cantidad" fill={C.accent} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+
+          {/* FILA 4 — Tipo + Evolución mensual */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
 
             <Card>
