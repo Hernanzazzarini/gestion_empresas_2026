@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { useAuth } from '../../context/AuthContext'
 import {
   listarDesvios, obtenerDesvio, crearDesvio, actualizarDesvio,
   cambiarEstado, agregarEvidencia, eliminarEvidencia, eliminarDesvio, notificarManual,
@@ -390,6 +391,8 @@ const exportarPDF = async (desvio) => {
 }
 
 const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => {
+  const { puede } = useAuth()
+  const puedeEditar = puede('desvios', 'editar')
   const [desvio, setDesvio]           = useState(initialDesvio)
   const [uploadTipo, setUploadTipo]   = useState('antes')
   const [uploading, setUploading]     = useState(false)
@@ -537,6 +540,7 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
       </div>
 
       {/* Estado */}
+      {puedeEditar && (
       <div style={card}>
         <p style={sectionTitle}>Estado</p>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
@@ -558,10 +562,12 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
           </button>
         </div>
       </div>
+      )}
 
       {/* Evidencias */}
       <div style={card}>
         <p style={sectionTitle}>Evidencias</p>
+        {puedeEditar && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
           <select style={{ ...select, width: 160 }} value={uploadTipo} onChange={e => setUploadTipo(e.target.value)}>
             <option value="antes">Antes</option>
@@ -576,6 +582,7 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} disabled={uploading} />
           </label>
         </div>
+        )}
 
         {desvio.evidencias?.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
@@ -587,10 +594,12 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
                 </div>
                 <img src={`${API_UPLOADS}/${ev.archivo_path}`} alt={ev.nombre_original}
                   style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #2a3045' }} />
-                <button onClick={() => handleDeleteEv(ev.id)}
-                  style={{ position: 'absolute', top: 4, right: 4, background: '#dc262688', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}>
-                  ✕
-                </button>
+                {puedeEditar && (
+                  <button onClick={() => handleDeleteEv(ev.id)}
+                    style={{ position: 'absolute', top: 4, right: 4, background: '#dc262688', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}>
+                    ✕
+                  </button>
+                )}
                 <p style={{ fontSize: 11, color: '#64748b', marginTop: 4, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {ev.nombre_original}
                 </p>
@@ -625,10 +634,12 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
 
       {/* Acciones finales */}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button onClick={() => onEdit(desvio)}
-          style={{ padding: '9px 18px', background: 'transparent', border: '1px solid #f59e0b', borderRadius: 8, color: '#f59e0b', cursor: 'pointer', fontSize: 13 }}>
-          Editar
-        </button>
+        {puedeEditar && (
+          <button onClick={() => onEdit(desvio)}
+            style={{ padding: '9px 18px', background: 'transparent', border: '1px solid #f59e0b', borderRadius: 8, color: '#f59e0b', cursor: 'pointer', fontSize: 13 }}>
+            Editar
+          </button>
+        )}
         {desvio.estado === 'Cerrado' && (
           <button onClick={handleExport} disabled={exportando}
             style={{ padding: '9px 18px', background: exportando ? '#374151' : '#166534', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: exportando ? 'not-allowed' : 'pointer', fontSize: 13 }}>
@@ -675,6 +686,9 @@ const Panel = ({ title, onClose, children, wide }) => (
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function Desvios() {
+  const { puede } = useAuth()
+  const puedeEditar   = puede('desvios', 'editar')
+  const puedeEliminar = puede('desvios', 'eliminar')
   const [desvios, setDesvios]     = useState([])
   const [loading, setLoading]     = useState(true)
   const [filtros, setFiltros]     = useState({ estado: '', area: '', gravedad: '', origen: '' })
@@ -730,10 +744,12 @@ export default function Desvios() {
           <h1 style={{ color: '#f1f5f9', fontSize: 24, fontWeight: 800, margin: 0 }}>Desvíos</h1>
           <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>Acciones correctivas y preventivas</p>
         </div>
-        <button onClick={() => { setSelected(null); setPanel('form') }}
-          style={{ padding: '10px 20px', background: '#f59e0b', border: 'none', borderRadius: 8, color: '#0f1117', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-          + Nuevo desvío
-        </button>
+        {puedeEditar && (
+          <button onClick={() => { setSelected(null); setPanel('form') }}
+            style={{ padding: '10px 20px', background: '#f59e0b', border: 'none', borderRadius: 8, color: '#0f1117', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+            + Nuevo desvío
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -807,10 +823,12 @@ export default function Desvios() {
                           style={{ padding: '4px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: 12 }}>
                           Ver
                         </button>
-                        <button onClick={() => handleDelete(d.id)} disabled={deletingId === d.id}
-                          style={{ padding: '4px 10px', background: '#dc262614', border: '1px solid #dc262640', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
-                          {deletingId === d.id ? '...' : 'Eliminar'}
-                        </button>
+                        {puedeEliminar && (
+                          <button onClick={() => handleDelete(d.id)} disabled={deletingId === d.id}
+                            style={{ padding: '4px 10px', background: '#dc262614', border: '1px solid #dc262640', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
+                            {deletingId === d.id ? '...' : 'Eliminar'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

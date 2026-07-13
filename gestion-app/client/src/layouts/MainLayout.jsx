@@ -1,23 +1,40 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
+// `modulo` gatea el ítem por permiso de lectura; `admin` lo restringe al administrador.
 const navItems = [
   { to: '/', label: 'Home', icon: '🏠', exact: true },
-  { to: '/mantenimiento/ots', label: 'Órdenes de Trabajo', icon: '🔧' },
-  { to: '/mantenimiento/reportes', label: 'Reportes OTs', icon: '📊' },
-  { to: '/logistica/contenedores',   label: 'Control Contenedores', icon: '🚛' },
-  { to: '/logistica/stock',          label: 'Control de Stock',     icon: '📦' },
-  { to: '/logistica/reporte-stock',  label: 'Reporte de Stock',     icon: '📋' },
-  { to: '/inocuidad/mapeo-documentos', label: 'Mapeo de Documentos', icon: '🛡️' },
-  { to: '/inocuidad/desvios',          label: 'Desvíos',             icon: '⚠️' },
-  { to: '/inocuidad/desvios/reportes', label: 'KPIs Desvíos',        icon: '📈' },
-  { to: '/inocuidad/reclamos',         label: 'Reclamos',             icon: '📣' },
-  { to: '/inocuidad/reclamos/reportes', label: 'KPIs Reclamos',       icon: '📈' },
-  { to: '/proveedores',                label: 'Proveedores',          icon: '🤝' },
+  { to: '/mantenimiento/ots', label: 'Órdenes de Trabajo', icon: '🔧', modulo: 'mantenimiento' },
+  { to: '/mantenimiento/reportes', label: 'Reportes OTs', icon: '📊', modulo: 'mantenimiento' },
+  { to: '/logistica/contenedores',   label: 'Control Contenedores', icon: '🚛', modulo: 'logistica' },
+  { to: '/logistica/stock',          label: 'Control de Stock',     icon: '📦', modulo: 'logistica' },
+  { to: '/logistica/reporte-stock',  label: 'Reporte de Stock',     icon: '📋', modulo: 'logistica' },
+  { to: '/inocuidad/mapeo-documentos', label: 'Mapeo de Documentos', icon: '🛡️', modulo: 'inocuidad' },
+  { to: '/inocuidad/desvios',          label: 'Desvíos',             icon: '⚠️', modulo: 'desvios' },
+  { to: '/inocuidad/desvios/reportes', label: 'KPIs Desvíos',        icon: '📈', modulo: 'desvios' },
+  { to: '/inocuidad/reclamos',         label: 'Reclamos',             icon: '📣', modulo: 'reclamos' },
+  { to: '/inocuidad/reclamos/reportes', label: 'KPIs Reclamos',       icon: '📈', modulo: 'reclamos' },
+  { to: '/proveedores',                label: 'Proveedores',          icon: '🤝', modulo: 'proveedores' },
+  { to: '/admin/usuarios',  label: 'Usuarios', icon: '👥', admin: true },
+  { to: '/admin/auditoria', label: 'Auditoría', icon: '🧾', admin: true },
 ]
+
+const rolLabel = {
+  administrador: 'Administrador',
+  mandos_medios: 'Mandos medios',
+  operarios: 'Operario',
+}
 
 export default function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { usuario, esAdmin, puede, logout } = useAuth()
+
+  const itemsVisibles = navItems.filter(item => {
+    if (item.admin) return esAdmin
+    if (item.modulo) return puede(item.modulo, 'leer')
+    return true
+  })
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0f1117' }}>
@@ -59,8 +76,8 @@ export default function MainLayout() {
         </div>
 
         {/* Nav */}
-        <nav style={{ padding: '12px 8px', flex: 1 }}>
-          {navItems.map(item => (
+        <nav style={{ padding: '12px 8px', flex: 1, overflowY: 'auto' }}>
+          {itemsVisibles.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -119,6 +136,7 @@ export default function MainLayout() {
           borderBottom: '1px solid #2a3045',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           padding: '0 24px',
           background: '#181c27',
           flexShrink: 0,
@@ -126,6 +144,29 @@ export default function MainLayout() {
           <span style={{ color: '#64748b', fontSize: 14 }}>
             Sistema de Gestión Empresarial
           </span>
+
+          {/* Usuario + logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ textAlign: 'right', lineHeight: 1.3 }}>
+              <div style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 700 }}>
+                {usuario?.nombre || usuario?.usuario}
+              </div>
+              <div style={{ color: '#64748b', fontSize: 11 }}>
+                {rolLabel[usuario?.rol] || usuario?.rol}
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              title="Cerrar sesión"
+              style={{
+                padding: '7px 14px', background: 'transparent',
+                border: '1px solid #2a3045', borderRadius: 8,
+                color: '#94a3b8', cursor: 'pointer', fontSize: 13,
+              }}
+            >
+              Salir
+            </button>
+          </div>
         </div>
 
         {/* Página activa */}

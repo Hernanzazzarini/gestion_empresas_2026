@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button, Card, Modal } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 import * as svc from '../../services/stock'
+import { useAuth } from '../../context/AuthContext'
 
 const CALIBRES = [
   '30-35', '38-42', '40-50', '50-60', '60-70', '80-100',
@@ -333,7 +334,7 @@ function ErrorBox({ msg }) {
 }
 
 // ─── Fila de la tabla ──────────────────────────────────────────────────────────
-function FilaLote({ lote, onReducir, onBajaTotal }) {
+function FilaLote({ lote, onReducir, onBajaTotal, puedeEditar, puedeEliminar }) {
   const [hover, setHover] = useState(false)
   return (
     <tr
@@ -371,28 +372,33 @@ function FilaLote({ lote, onReducir, onBajaTotal }) {
       </td>
       <td style={{ ...tdStyle, textAlign: 'center' }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-          <button
-            onClick={() => onReducir(lote)}
-            style={{
-              background: `${C.accent}18`, border: `1px solid ${C.accent}44`,
-              borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
-              fontSize: 12, color: C.accent, fontFamily: 'inherit', fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            − Envases
-          </button>
-          <button
-            onClick={() => onBajaTotal(lote)}
-            style={{
-              background: 'transparent', border: `1px solid ${C.red}44`,
-              borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
-              fontSize: 12, color: C.red, fontFamily: 'inherit', fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Dar de baja
-          </button>
+          {puedeEditar && (
+            <button
+              onClick={() => onReducir(lote)}
+              style={{
+                background: `${C.accent}18`, border: `1px solid ${C.accent}44`,
+                borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
+                fontSize: 12, color: C.accent, fontFamily: 'inherit', fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              − Envases
+            </button>
+          )}
+          {puedeEliminar && (
+            <button
+              onClick={() => onBajaTotal(lote)}
+              style={{
+                background: 'transparent', border: `1px solid ${C.red}44`,
+                borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
+                fontSize: 12, color: C.red, fontFamily: 'inherit', fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Dar de baja
+            </button>
+          )}
+          {!puedeEditar && !puedeEliminar && <span style={{ color: C.textMuted, fontSize: 12 }}>—</span>}
         </div>
       </td>
     </tr>
@@ -412,6 +418,9 @@ const thStyle = {
 
 // ─── Página principal ──────────────────────────────────────────────────────────
 export default function StockLotes() {
+  const { puede } = useAuth()
+  const puedeEditar   = puede('logistica', 'editar')
+  const puedeEliminar = puede('logistica', 'eliminar')
   const [lotes, setLotes]             = useState([])
   const [cargando, setCargando]       = useState(true)
   const [error, setError]             = useState('')
@@ -565,7 +574,7 @@ export default function StockLotes() {
             </button>
           )}
         </div>
-        <Button onClick={() => setModalNuevo(true)}>+ Nuevo Lote</Button>
+        {puedeEditar && <Button onClick={() => setModalNuevo(true)}>+ Nuevo Lote</Button>}
       </div>
 
       {/* TABLA */}
@@ -627,6 +636,8 @@ export default function StockLotes() {
                     lote={lote}
                     onReducir={setLoteReducir}
                     onBajaTotal={setLoteBajaTotal}
+                    puedeEditar={puedeEditar}
+                    puedeEliminar={puedeEliminar}
                   />
                 ))}
               </tbody>

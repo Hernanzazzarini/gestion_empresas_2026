@@ -6,6 +6,7 @@ import FormSeccion2 from './FormSeccion2'
 import HistorialContenedores from './HistorialContenedores'
 import DashboardContenedores from './DashboardContenedores'
 import * as svc from '../../services/contenedores'
+import { useAuth } from '../../context/AuthContext'
 
 const estadoConfig = {
   pendiente_carga: { label: 'Pendiente Carga', color: '#f59e0b', bg: '#451a03' },
@@ -114,6 +115,7 @@ const tabs = [
 ]
 
 export default function Contenedores() {
+  const { puede } = useAuth()
   const [items, setItems]               = useState([])
   const [rol, setRol]                   = useState('inocuidad')
   const [tab, setTab]                   = useState('registros')
@@ -324,7 +326,7 @@ export default function Contenedores() {
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-            {rol === 'inocuidad' && (
+            {rol === 'inocuidad' && puede('logistica', 'editar') && (
               <Button onClick={() => setModalNuevo(true)}>+ Nuevo Control</Button>
             )}
           </div>

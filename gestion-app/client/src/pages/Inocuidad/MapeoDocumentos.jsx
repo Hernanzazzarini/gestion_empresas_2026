@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button, Card, Modal } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 import * as svc from '../../services/documentos'
+import { useAuth } from '../../context/AuthContext'
 
 const API_BASE = 'http://localhost:3000'
 
@@ -405,7 +406,7 @@ function ModalArchivo({ doc, onActualizar, onClose }) {
 }
 
 // ─── Fila de la tabla ──────────────────────────────────────────────────────────
-function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
+function FilaDocumento({ doc, onEditar, onEliminar, onArchivo, puedeEditar, puedeEliminar }) {
   const [hover,        setHover]        = useState(false)
   const [verEmails,    setVerEmails]    = useState(false)
   const dias      = diasHastaRevision(doc.fechaRevision)
@@ -538,26 +539,30 @@ function FilaDocumento({ doc, onEditar, onEliminar, onArchivo }) {
           >
             📎
           </button>
-          <button
-            onClick={() => onEditar(doc)}
-            style={{
-              background: `${C.accent}18`, border: `1px solid ${C.accent}44`,
-              borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
-              fontSize: 12, color: C.accent, fontFamily: 'inherit', fontWeight: 600,
-            }}
-          >
-            Editar
-          </button>
-          <button
-            onClick={() => onEliminar(doc)}
-            style={{
-              background: 'transparent', border: `1px solid ${C.red}44`,
-              borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
-              fontSize: 12, color: C.red, fontFamily: 'inherit', fontWeight: 600,
-            }}
-          >
-            Eliminar
-          </button>
+          {puedeEditar && (
+            <button
+              onClick={() => onEditar(doc)}
+              style={{
+                background: `${C.accent}18`, border: `1px solid ${C.accent}44`,
+                borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
+                fontSize: 12, color: C.accent, fontFamily: 'inherit', fontWeight: 600,
+              }}
+            >
+              Editar
+            </button>
+          )}
+          {puedeEliminar && (
+            <button
+              onClick={() => onEliminar(doc)}
+              style={{
+                background: 'transparent', border: `1px solid ${C.red}44`,
+                borderRadius: 6, padding: '4px 9px', cursor: 'pointer',
+                fontSize: 12, color: C.red, fontFamily: 'inherit', fontWeight: 600,
+              }}
+            >
+              Eliminar
+            </button>
+          )}
         </div>
       </td>
     </tr>
@@ -648,6 +653,9 @@ function PanelAlertas({ documentos, onEnviarEmail }) {
 
 // ─── Página principal ──────────────────────────────────────────────────────────
 export default function MapeoDocumentos() {
+  const { puede } = useAuth()
+  const puedeEditar   = puede('inocuidad', 'editar')
+  const puedeEliminar = puede('inocuidad', 'eliminar')
   const [documentos,   setDocumentos]   = useState([])
   const [cargando,     setCargando]     = useState(true)
   const [error,        setError]        = useState('')
@@ -785,7 +793,7 @@ export default function MapeoDocumentos() {
           {AREAS.map(a => <option key={a} value={a}>{AREA_LABEL[a]}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <Button onClick={() => setModalNuevo(true)}>+ Nuevo documento</Button>
+          {puedeEditar && <Button onClick={() => setModalNuevo(true)}>+ Nuevo documento</Button>}
         </div>
       </div>
 
@@ -846,6 +854,8 @@ export default function MapeoDocumentos() {
                     onEditar={setDocEditar}
                     onEliminar={setDocEliminar}
                     onArchivo={setDocArchivo}
+                    puedeEditar={puedeEditar}
+                    puedeEliminar={puedeEliminar}
                   />
                 ))}
               </tbody>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const modules = [
   {
@@ -9,8 +10,8 @@ const modules = [
     color: '#f59e0b',
     available: true,
     links: [
-      { label: 'Órdenes de Trabajo', to: '/mantenimiento/ots' },
-      { label: 'Reportes OTs',       to: '/mantenimiento/reportes' },
+      { label: 'Órdenes de Trabajo', to: '/mantenimiento/ots', modulo: 'mantenimiento' },
+      { label: 'Reportes OTs',       to: '/mantenimiento/reportes', modulo: 'mantenimiento' },
     ],
   },
   {
@@ -62,6 +63,17 @@ const modules = [
   },
 ]
 
+// Deriva la clave de módulo (para permisos) desde la ruta del link.
+const moduloDeRuta = (to) => {
+  if (to.startsWith('/mantenimiento')) return 'mantenimiento'
+  if (to.startsWith('/logistica')) return 'logistica'
+  if (to.startsWith('/inocuidad/desvios')) return 'desvios'
+  if (to.startsWith('/inocuidad/reclamos')) return 'reclamos'
+  if (to.startsWith('/inocuidad')) return 'inocuidad'
+  if (to.startsWith('/proveedores')) return 'proveedores'
+  return null
+}
+
 const stats = [
   { label: 'Módulos activos',  value: '5', icon: '✅' },
   { label: 'En desarrollo',    value: '0', icon: '🚧' },
@@ -70,6 +82,18 @@ const stats = [
 
 export default function Home() {
   const navigate = useNavigate()
+  const { puede } = useAuth()
+
+  // Ocultar links sin permiso de lectura y tarjetas que quedan sin links.
+  const modulosVisibles = modules
+    .map(mod => ({
+      ...mod,
+      links: mod.links.filter(l => {
+        const m = moduloDeRuta(l.to)
+        return !m || puede(m, 'leer')
+      }),
+    }))
+    .filter(mod => mod.links.length > 0)
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -139,7 +163,7 @@ export default function Home() {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 16,
       }}>
-        {modules.map(mod => (
+        {modulosVisibles.map(mod => (
           <ModuleCard key={mod.title} mod={mod} onNavigate={navigate} />
         ))}
       </div>

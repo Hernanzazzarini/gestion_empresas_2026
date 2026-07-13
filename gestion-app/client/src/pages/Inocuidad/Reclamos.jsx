@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { useAuth } from '../../context/AuthContext'
 import {
   listarReclamos, obtenerReclamo, crearReclamo, actualizarReclamo,
   cambiarEstado, agregarAdjunto, eliminarAdjunto, eliminarReclamo, notificarManual,
@@ -405,19 +406,21 @@ const exportarPDF = async (reclamo) => {
 }
 
 // Bloque de adjuntos (subida + grilla) por tipo
-const AdjuntosBloque = ({ titulo, tipo, adjuntos, onUpload, onDelete, uploading }) => (
+const AdjuntosBloque = ({ titulo, tipo, adjuntos, onUpload, onDelete, uploading, readOnly }) => (
   <div style={card}>
     <p style={sectionTitle}>{titulo}</p>
-    <label style={{
-      display: 'inline-block', padding: '8px 18px',
-      background: uploading ? '#374151' : '#1e293b',
-      border: '1px dashed #475569', borderRadius: 8, color: '#94a3b8',
-      cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 13, marginBottom: 16,
-    }}>
-      {uploading ? 'Subiendo...' : '+ Subir archivo'}
-      <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-        onChange={(e) => onUpload(e, tipo)} disabled={uploading} />
-    </label>
+    {!readOnly && (
+      <label style={{
+        display: 'inline-block', padding: '8px 18px',
+        background: uploading ? '#374151' : '#1e293b',
+        border: '1px dashed #475569', borderRadius: 8, color: '#94a3b8',
+        cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 13, marginBottom: 16,
+      }}>
+        {uploading ? 'Subiendo...' : '+ Subir archivo'}
+        <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+          onChange={(e) => onUpload(e, tipo)} disabled={uploading} />
+      </label>
+    )}
 
     {adjuntos.length > 0 ? (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
@@ -439,10 +442,12 @@ const AdjuntosBloque = ({ titulo, tipo, adjuntos, onUpload, onDelete, uploading 
                 <span style={{ fontSize: 11, color: '#94a3b8' }}>Ver PDF</span>
               </a>
             )}
-            <button onClick={() => onDelete(a.id)}
-              style={{ position: 'absolute', top: 4, right: 4, background: '#dc262688', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}>
-              ✕
-            </button>
+            {!readOnly && (
+              <button onClick={() => onDelete(a.id)}
+                style={{ position: 'absolute', top: 4, right: 4, background: '#dc262688', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 12 }}>
+                ✕
+              </button>
+            )}
             <p style={{ fontSize: 11, color: '#64748b', marginTop: 4, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {a.nombre_original}
             </p>
@@ -456,6 +461,8 @@ const AdjuntosBloque = ({ titulo, tipo, adjuntos, onUpload, onDelete, uploading 
 )
 
 const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) => {
+  const { puede } = useAuth()
+  const puedeEditar = puede('reclamos', 'editar')
   const [reclamo, setReclamo]       = useState(initialReclamo)
   const [uploading, setUploading]   = useState(false)
   const [estadoEdit, setEstadoEdit] = useState({ estado: reclamo.estado, fecha: reclamo.fechaCierre || '' })
@@ -618,6 +625,7 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
       </div>
 
       {/* Estado */}
+      {puedeEditar && (
       <div style={card}>
         <p style={sectionTitle}>Estado</p>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
@@ -639,6 +647,7 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
           </button>
         </div>
       </div>
+      )}
 
       {/* Adjuntos del reclamo */}
       <AdjuntosBloque
@@ -648,6 +657,7 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
         onUpload={handleUpload}
         onDelete={handleDeleteAdjunto}
         uploading={uploading}
+        readOnly={!puedeEditar}
       />
 
       {/* Evidencias */}
@@ -658,6 +668,7 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
         onUpload={handleUpload}
         onDelete={handleDeleteAdjunto}
         uploading={uploading}
+        readOnly={!puedeEditar}
       />
 
       {/* Notificación manual */}
@@ -683,10 +694,12 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
 
       {/* Acciones finales */}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button onClick={() => onEdit(reclamo)}
-          style={{ padding: '9px 18px', background: 'transparent', border: '1px solid #f59e0b', borderRadius: 8, color: '#f59e0b', cursor: 'pointer', fontSize: 13 }}>
-          Editar
-        </button>
+        {puedeEditar && (
+          <button onClick={() => onEdit(reclamo)}
+            style={{ padding: '9px 18px', background: 'transparent', border: '1px solid #f59e0b', borderRadius: 8, color: '#f59e0b', cursor: 'pointer', fontSize: 13 }}>
+            Editar
+          </button>
+        )}
         <button onClick={handleExport} disabled={exportando}
           style={{ padding: '9px 18px', background: exportando ? '#374151' : '#166534', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: exportando ? 'not-allowed' : 'pointer', fontSize: 13 }}>
           {exportando ? 'Generando...' : 'Exportar PDF'}
@@ -731,6 +744,9 @@ const Panel = ({ title, onClose, children, wide }) => (
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function Reclamos() {
+  const { puede } = useAuth()
+  const puedeEditar   = puede('reclamos', 'editar')
+  const puedeEliminar = puede('reclamos', 'eliminar')
   const [reclamos, setReclamos]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [filtros, setFiltros]       = useState({ estado: '', tipo: '', destinatario: '', motivo: '', gravedad: '', anio: '' })
@@ -795,10 +811,12 @@ export default function Reclamos() {
           <h1 style={{ color: '#f1f5f9', fontSize: 24, fontWeight: 800, margin: 0 }}>Reclamos</h1>
           <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>Seguimiento de reclamos de clientes</p>
         </div>
-        <button onClick={() => { setSelected(null); setPanel('form') }}
-          style={{ padding: '10px 20px', background: '#f59e0b', border: 'none', borderRadius: 8, color: '#0f1117', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-          + Nuevo reclamo
-        </button>
+        {puedeEditar && (
+          <button onClick={() => { setSelected(null); setPanel('form') }}
+            style={{ padding: '10px 20px', background: '#f59e0b', border: 'none', borderRadius: 8, color: '#0f1117', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+            + Nuevo reclamo
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -883,10 +901,12 @@ export default function Reclamos() {
                           style={{ padding: '4px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: 12 }}>
                           Ver
                         </button>
-                        <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
-                          style={{ padding: '4px 10px', background: '#dc262614', border: '1px solid #dc262640', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
-                          {deletingId === r.id ? '...' : 'Eliminar'}
-                        </button>
+                        {puedeEliminar && (
+                          <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
+                            style={{ padding: '4px 10px', background: '#dc262614', border: '1px solid #dc262640', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
+                            {deletingId === r.id ? '...' : 'Eliminar'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

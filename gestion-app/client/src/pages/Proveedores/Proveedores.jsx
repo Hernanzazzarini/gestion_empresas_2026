@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button, Card, Modal } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 import * as svc from '../../services/proveedores'
+import { useAuth } from '../../context/AuthContext'
 
 const API_BASE = 'http://localhost:3000'
 
@@ -339,6 +340,7 @@ function FormDocumento({ inicial, onSubmit, onCancel }) {
 
 // ─── Fila de documento dentro del modal ──────────────────────────────────────
 function FilaDoc({ doc, onEditar, onEliminar }) {
+  const { puede } = useAuth()
   const dias = diasHastaVencimiento(doc.fechaVencimiento)
   const col  = colorAlerta(dias)
   return (
@@ -378,14 +380,18 @@ function FilaDoc({ doc, onEditar, onEliminar }) {
               padding: '4px 9px', fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: 'none',
             }}>👁</a>
         )}
-        <button onClick={() => onEditar(doc)} style={{
-          background: `${C.accent}18`, border: `1px solid ${C.accent}44`, borderRadius: 6,
-          padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.accent, fontWeight: 600, fontFamily: 'inherit',
-        }}>Editar</button>
-        <button onClick={() => onEliminar(doc)} style={{
-          background: 'transparent', border: `1px solid ${C.red}44`, borderRadius: 6,
-          padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.red, fontWeight: 600, fontFamily: 'inherit',
-        }}>🗑</button>
+        {puede('proveedores', 'editar') && (
+          <button onClick={() => onEditar(doc)} style={{
+            background: `${C.accent}18`, border: `1px solid ${C.accent}44`, borderRadius: 6,
+            padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.accent, fontWeight: 600, fontFamily: 'inherit',
+          }}>Editar</button>
+        )}
+        {puede('proveedores', 'eliminar') && (
+          <button onClick={() => onEliminar(doc)} style={{
+            background: 'transparent', border: `1px solid ${C.red}44`, borderRadius: 6,
+            padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.red, fontWeight: 600, fontFamily: 'inherit',
+          }}>🗑</button>
+        )}
       </div>
     </div>
   )
@@ -393,6 +399,7 @@ function FilaDoc({ doc, onEditar, onEliminar }) {
 
 // ─── Modal de documentos de un proveedor ─────────────────────────────────────
 function ModalDocumentos({ proveedor, onCrear, onActualizar, onEliminar, onClose }) {
+  const { puede } = useAuth()
   const [modo,    setModo]    = useState(null) // null | 'nuevo' | doc(editar)
   const [borrando, setBorrando] = useState(null)
 
@@ -462,7 +469,7 @@ function ModalDocumentos({ proveedor, onCrear, onActualizar, onEliminar, onClose
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-        {!modo
+        {!modo && puede('proveedores', 'editar')
           ? <Button onClick={() => setModo('nuevo')}>+ Agregar documento</Button>
           : <span />}
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
@@ -545,6 +552,7 @@ function PanelAlertas({ proveedores, onEnviarEmail }) {
 
 // ─── Fila de proveedor ───────────────────────────────────────────────────────
 function FilaProveedor({ prov, onDocs, onEditar, onEliminar }) {
+  const { puede } = useAuth()
   const [hover, setHover] = useState(false)
   const docs = prov.documentos ?? []
   const conVenc = docs.filter(d => d.fechaVencimiento)
@@ -593,14 +601,18 @@ function FilaProveedor({ prov, onDocs, onEditar, onEliminar }) {
             background: `${C.blue}18`, border: `1px solid ${C.blue}44`, borderRadius: 6,
             padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.blue, fontWeight: 600, fontFamily: 'inherit',
           }}>📎 Docs</button>
-          <button onClick={() => onEditar(prov)} style={{
-            background: `${C.accent}18`, border: `1px solid ${C.accent}44`, borderRadius: 6,
-            padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.accent, fontWeight: 600, fontFamily: 'inherit',
-          }}>Editar</button>
-          <button onClick={() => onEliminar(prov)} style={{
-            background: 'transparent', border: `1px solid ${C.red}44`, borderRadius: 6,
-            padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.red, fontWeight: 600, fontFamily: 'inherit',
-          }}>Eliminar</button>
+          {puede('proveedores', 'editar') && (
+            <button onClick={() => onEditar(prov)} style={{
+              background: `${C.accent}18`, border: `1px solid ${C.accent}44`, borderRadius: 6,
+              padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.accent, fontWeight: 600, fontFamily: 'inherit',
+            }}>Editar</button>
+          )}
+          {puede('proveedores', 'eliminar') && (
+            <button onClick={() => onEliminar(prov)} style={{
+              background: 'transparent', border: `1px solid ${C.red}44`, borderRadius: 6,
+              padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.red, fontWeight: 600, fontFamily: 'inherit',
+            }}>Eliminar</button>
+          )}
         </div>
       </td>
     </tr>
@@ -609,6 +621,7 @@ function FilaProveedor({ prov, onDocs, onEditar, onEliminar }) {
 
 // ─── Página principal ────────────────────────────────────────────────────────
 export default function Proveedores() {
+  const { puede } = useAuth()
   const [proveedores, setProveedores] = useState([])
   const [cargando,    setCargando]    = useState(true)
   const [error,       setError]       = useState('')
@@ -739,7 +752,7 @@ export default function Proveedores() {
           {TIPOS_PROVEEDOR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <Button onClick={() => setModalNuevo(true)}>+ Nuevo proveedor</Button>
+          {puede('proveedores', 'editar') && <Button onClick={() => setModalNuevo(true)}>+ Nuevo proveedor</Button>}
         </div>
       </div>
 

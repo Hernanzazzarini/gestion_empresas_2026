@@ -4,6 +4,7 @@ import { estadoConfig, prioridades, colors as C } from '../../components/ui/toke
 import FormNuevaOT from './FormNuevaOT'
 import DetalleOT from './DetalleOT'
 import * as otsService from '../../services/ots'
+import { useAuth } from '../../context/AuthContext'
 
 // ─── ROLES ────────────────────────────────────────────────────────────────────
 const roles = [
@@ -93,6 +94,7 @@ function OTCard({ ot, onClick }) {
 
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 export default function OTs() {
+  const { puede } = useAuth()
   const [ots, setOts]                   = useState([])
   const [rol, setRol]                   = useState('solicitante')
   const [filtroEstado, setFiltroEstado] = useState('all')
@@ -280,7 +282,7 @@ export default function OTs() {
           ))}
         </Select>
 
-        {(rol === 'solicitante' || rol === 'mantenimiento') && (
+        {(rol === 'solicitante' || rol === 'mantenimiento') && puede('mantenimiento', 'editar') && (
           <Button onClick={() => setModalNuevaOT(true)}>
             + Nueva OT
           </Button>
