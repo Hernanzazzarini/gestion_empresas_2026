@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { listarUsuarios } from '../services/auth'
 
 const modules = [
   {
@@ -66,7 +67,8 @@ const modules = [
 // Deriva la clave de módulo (para permisos) desde la ruta del link.
 const moduloDeRuta = (to) => {
   if (to.startsWith('/mantenimiento')) return 'mantenimiento'
-  if (to.startsWith('/logistica')) return 'logistica'
+  if (to.startsWith('/logistica/contenedores')) return 'contenedores'
+  if (to.startsWith('/logistica/stock') || to.startsWith('/logistica/reporte-stock')) return 'stock'
   if (to.startsWith('/inocuidad/desvios')) return 'desvios'
   if (to.startsWith('/inocuidad/reclamos')) return 'reclamos'
   if (to.startsWith('/inocuidad')) return 'inocuidad'
@@ -74,15 +76,20 @@ const moduloDeRuta = (to) => {
   return null
 }
 
-const stats = [
-  { label: 'Módulos activos',  value: '5', icon: '✅' },
-  { label: 'En desarrollo',    value: '0', icon: '🚧' },
-  { label: 'Usuarios',         value: '—', icon: '👤' },
-]
-
 export default function Home() {
   const navigate = useNavigate()
-  const { puede } = useAuth()
+  const { puede, esAdmin } = useAuth()
+  // null = todavía cargando; sólo el admin puede consultar /api/auth/usuarios.
+  const [usuariosActivos, setUsuariosActivos] = useState(null)
+
+  useEffect(() => {
+    if (!esAdmin) return
+    let vivo = true
+    listarUsuarios()
+      .then(us => { if (vivo) setUsuariosActivos(us.filter(u => u.activo).length) })
+      .catch(() => { /* si falla, la tarjeta queda en "—" */ })
+    return () => { vivo = false }
+  }, [esAdmin])
 
   // Ocultar links sin permiso de lectura y tarjetas que quedan sin links.
   const modulosVisibles = modules
@@ -94,6 +101,15 @@ export default function Home() {
       }),
     }))
     .filter(mod => mod.links.length > 0)
+
+  const stats = [
+    { label: 'Módulos activos', value: String(modulosVisibles.length), icon: '✅' },
+    { label: 'En desarrollo',   value: '0', icon: '🚧' },
+    // El conteo de usuarios es información de administración: sólo se muestra al admin.
+    ...(esAdmin
+      ? [{ label: 'Usuarios activos', value: usuariosActivos ?? '—', icon: '👤' }]
+      : []),
+  ]
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -120,7 +136,7 @@ export default function Home() {
       {/* STATS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
         gap: 14,
         marginBottom: 36,
       }}>

@@ -37,9 +37,9 @@ app.use('/api/auditoria',   auditoriaRoutes)
 // Módulos de negocio — protegidos con auth + permisos + auditoría.
 // protegerModulo(clave) = [authRequired, gateModulo(clave), auditarModulo(clave)]
 app.use('/api/ots',          protegerModulo('mantenimiento'), otRoutes)
-app.use('/api/contenedores', protegerModulo('logistica'),     contenedoresRoutes)
-app.use('/api/uploads',      protegerModulo('logistica'),     uploadsRoutes)
-app.use('/api/stock',        protegerModulo('logistica'),     stockRoutes)
+app.use('/api/contenedores', protegerModulo('contenedores'),  contenedoresRoutes)
+app.use('/api/uploads',      protegerModulo('contenedores'),  uploadsRoutes) // fotos de contenedores
+app.use('/api/stock',        protegerModulo('stock'),         stockRoutes)
 app.use('/api/documentos',   protegerModulo('inocuidad'),     documentosRoutes)
 app.use('/api/proveedores',  protegerModulo('proveedores'),   proveedoresRoutes)
 app.use('/api/desvios',      protegerModulo('desvios'),       desviosRoutes)

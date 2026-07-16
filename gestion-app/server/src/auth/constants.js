@@ -1,7 +1,7 @@
 // Fuente única de módulos, roles y acciones para permisos/auditoría.
 
 // Módulos sobre los que se asignan permisos (deben coincidir con el mapa de rutas en index.js)
-const MODULOS = ['mantenimiento', 'logistica', 'inocuidad', 'desvios', 'reclamos', 'proveedores']
+const MODULOS = ['mantenimiento', 'contenedores', 'stock', 'inocuidad', 'desvios', 'reclamos', 'proveedores']
 
 const ROLES = ['administrador', 'mandos_medios', 'operarios']
 

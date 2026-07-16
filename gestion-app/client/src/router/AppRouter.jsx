@@ -44,9 +44,9 @@ export default function AppRouter() {
           <Route path="/mantenimiento/ots"      element={<RutaModulo modulo="mantenimiento"><OTs /></RutaModulo>} />
           <Route path="/mantenimiento/reportes" element={<RutaModulo modulo="mantenimiento"><ReportesOTs /></RutaModulo>} />
 
-          <Route path="/logistica/contenedores"  element={<RutaModulo modulo="logistica"><Contenedores /></RutaModulo>} />
-          <Route path="/logistica/stock"         element={<RutaModulo modulo="logistica"><StockLotes /></RutaModulo>} />
-          <Route path="/logistica/reporte-stock" element={<RutaModulo modulo="logistica"><ReporteStock /></RutaModulo>} />
+          <Route path="/logistica/contenedores"  element={<RutaModulo modulo="contenedores"><Contenedores /></RutaModulo>} />
+          <Route path="/logistica/stock"         element={<RutaModulo modulo="stock"><StockLotes /></RutaModulo>} />
+          <Route path="/logistica/reporte-stock" element={<RutaModulo modulo="stock"><ReporteStock /></RutaModulo>} />
 
           <Route path="/inocuidad/mapeo-documentos" element={<RutaModulo modulo="inocuidad"><MapeoDocumentos /></RutaModulo>} />
           <Route path="/inocuidad/desvios"          element={<RutaModulo modulo="desvios"><Desvios /></RutaModulo>} />

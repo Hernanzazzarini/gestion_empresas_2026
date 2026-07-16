@@ -12,9 +12,10 @@ const accionColor = {
 }
 
 const moduloLabel = {
-  mantenimiento: 'Mantenimiento', logistica: 'Logística', inocuidad: 'Inocuidad',
-  desvios: 'Desvíos', reclamos: 'Reclamos', proveedores: 'Proveedores',
-  auth: 'Autenticación', usuarios: 'Usuarios',
+  mantenimiento: 'Mantenimiento', contenedores: 'Contenedores', stock: 'Stock',
+  inocuidad: 'Inocuidad', desvios: 'Desvíos', reclamos: 'Reclamos',
+  proveedores: 'Proveedores', auth: 'Autenticación', usuarios: 'Usuarios',
+  logistica: 'Logística (histórico)', // eventos previos a separar contenedores/stock
 }
 
 const fmtFecha = (f) => f ? new Date(f).toLocaleString('es-AR') : '—'

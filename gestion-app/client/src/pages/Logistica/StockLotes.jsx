@@ -419,8 +419,8 @@ const thStyle = {
 // ─── Página principal ──────────────────────────────────────────────────────────
 export default function StockLotes() {
   const { puede } = useAuth()
-  const puedeEditar   = puede('logistica', 'editar')
-  const puedeEliminar = puede('logistica', 'eliminar')
+  const puedeEditar   = puede('stock', 'editar')
+  const puedeEliminar = puede('stock', 'eliminar')
   const [lotes, setLotes]             = useState([])
   const [cargando, setCargando]       = useState(true)
   const [error, setError]             = useState('')

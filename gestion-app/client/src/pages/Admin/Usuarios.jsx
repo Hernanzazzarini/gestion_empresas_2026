@@ -8,7 +8,8 @@ import {
 // Debe coincidir con MODULOS del backend (auth/constants.js)
 const MODULOS = [
   { key: 'mantenimiento', label: 'Mantenimiento' },
-  { key: 'logistica',     label: 'Logística' },
+  { key: 'contenedores',  label: 'Control de Contenedores' },
+  { key: 'stock',         label: 'Stock (Control + Reporte)' },
   { key: 'inocuidad',     label: 'Inocuidad (Mapeo)' },
   { key: 'desvios',       label: 'Desvíos' },
   { key: 'reclamos',      label: 'Reclamos' },

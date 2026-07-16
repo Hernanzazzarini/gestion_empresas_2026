@@ -326,7 +326,7 @@ export default function Contenedores() {
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-            {rol === 'inocuidad' && puede('logistica', 'editar') && (
+            {rol === 'inocuidad' && puede('contenedores', 'editar') && (
               <Button onClick={() => setModalNuevo(true)}>+ Nuevo Control</Button>
             )}
           </div>
