@@ -26,7 +26,7 @@ const valoresSeccion1 = (b) => [
   b.responsable_inocuidad  ?? null,
 ]
 
-// Valores de sección 2 en el orden exacto de las columnas (49 campos)
+// Valores de sección 2 en el orden exacto de las columnas (50 campos)
 const valoresSeccion2 = (b) => [
   b.hora_salida ?? null, b.destino_descarga ?? null, b.cosecha ?? null, b.tipo_envase ?? null,
   parseBooleano(b.forrado_contenedor), b.material_forrado ?? null,
@@ -40,7 +40,9 @@ const valoresSeccion2 = (b) => [
   b.temp_bb1 ?? null, b.temp_bb5 ?? null, b.temp_bb10 ?? null, b.temp_bb15 ?? null, b.temp_bb20 ?? null, b.temp_promedio ?? null,
   parseBooleano(b.etiqueta_lote), parseBooleano(b.etiqueta_calibre), parseBooleano(b.etiqueta_peso),
   parseBooleano(b.etiqueta_fechas), parseBooleano(b.etiqueta_leyenda), parseBooleano(b.etiqueta_especial),
-  b.obs_etiquetas ?? null, b.punto_rocio ?? null, b.temp_tempering ?? null,
+  b.obs_etiquetas ?? null,
+  parseBooleano(b.carga_libre_cuerpos_extranos), b.obs_control_elementos ?? null,
+  b.punto_rocio ?? null, b.temp_tempering ?? null,
   b.humedad_tempering ?? null, b.temp_ambiente ?? null, b.humedad_ambiente ?? null,
   b.firma_cargador ?? null, b.firma_auxiliar ?? null, b.firma_acondicionador ?? null,
 ]
@@ -141,7 +143,8 @@ const upsertSeccion2 = async (conn, contenedorId, b) => {
         temp_bb20=?, temp_promedio=?,
         etiqueta_lote=?, etiqueta_calibre=?, etiqueta_peso=?,
         etiqueta_fechas=?, etiqueta_leyenda=?, etiqueta_especial=?,
-        obs_etiquetas=?, punto_rocio=?, temp_tempering=?,
+        obs_etiquetas=?, carga_libre_cuerpos_extranos=?, obs_control_elementos=?,
+        punto_rocio=?, temp_tempering=?,
         humedad_tempering=?, temp_ambiente=?, humedad_ambiente=?,
         firma_cargador=?, firma_auxiliar=?, firma_acondicionador=?
       WHERE contenedor_id=?
@@ -163,10 +166,11 @@ const upsertSeccion2 = async (conn, contenedorId, b) => {
          temp_bb20, temp_promedio,
          etiqueta_lote, etiqueta_calibre, etiqueta_peso,
          etiqueta_fechas, etiqueta_leyenda, etiqueta_especial,
-         obs_etiquetas, punto_rocio, temp_tempering,
+         obs_etiquetas, carga_libre_cuerpos_extranos, obs_control_elementos,
+         punto_rocio, temp_tempering,
          humedad_tempering, temp_ambiente, humedad_ambiente,
          firma_cargador, firma_auxiliar, firma_acondicionador)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [contenedorId, ...v])
   }
 }

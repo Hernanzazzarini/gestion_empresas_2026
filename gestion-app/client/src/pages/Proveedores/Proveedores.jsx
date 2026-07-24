@@ -563,7 +563,8 @@ function FilaProveedor({ prov, onDocs, onEditar, onEliminar }) {
 
   return (
     <tr onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ background: hover ? C.surfaceHigh : 'transparent', transition: 'background 0.15s' }}>
+      onClick={() => onDocs(prov)} title="Ver documentación"
+      style={{ background: hover ? C.surfaceHigh : 'transparent', transition: 'background 0.15s', cursor: 'pointer' }}>
       <td style={tdStyle}>
         <div style={{ fontWeight: 700 }}>{prov.nombre}</div>
         <div style={{ fontSize: 11, color: C.textSecondary }}>{prov.tipoInsumoServicio}</div>
@@ -597,24 +598,37 @@ function FilaProveedor({ prov, onDocs, onEditar, onEliminar }) {
       </td>
       <td style={{ ...tdStyle, textAlign: 'center' }}>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-          <button onClick={() => onDocs(prov)} title="Documentos" style={{
+          <button onClick={(e) => { e.stopPropagation(); onDocs(prov) }} title="Documentos" style={{
             background: `${C.blue}18`, border: `1px solid ${C.blue}44`, borderRadius: 6,
             padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.blue, fontWeight: 600, fontFamily: 'inherit',
           }}>📎 Docs</button>
           {puede('proveedores', 'editar') && (
-            <button onClick={() => onEditar(prov)} style={{
+            <button onClick={(e) => { e.stopPropagation(); onEditar(prov) }} style={{
               background: `${C.accent}18`, border: `1px solid ${C.accent}44`, borderRadius: 6,
               padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.accent, fontWeight: 600, fontFamily: 'inherit',
             }}>Editar</button>
           )}
           {puede('proveedores', 'eliminar') && (
-            <button onClick={() => onEliminar(prov)} style={{
+            <button onClick={(e) => { e.stopPropagation(); onEliminar(prov) }} style={{
               background: 'transparent', border: `1px solid ${C.red}44`, borderRadius: 6,
               padding: '4px 9px', cursor: 'pointer', fontSize: 12, color: C.red, fontWeight: 600, fontFamily: 'inherit',
             }}>Eliminar</button>
           )}
         </div>
       </td>
+    </tr>
+  )
+}
+
+// ─── Fila skeleton (carga) ────────────────────────────────────────────────────
+function FilaSkeleton() {
+  return (
+    <tr>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <td key={i} style={tdStyle}>
+          <div style={{ height: 12, borderRadius: 4, background: C.surfaceHigh, animation: 'gpSkeleton 1.2s ease-in-out infinite' }} />
+        </td>
+      ))}
     </tr>
   )
 }
@@ -634,7 +648,16 @@ export default function Proveedores() {
   const [busqueda,   setBusqueda]   = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
 
-  useEffect(() => { cargar() }, [])
+  // Carga inicial con guard: evita actualizar estado si el componente se
+  // desmonta antes de que resuelva la petición. (`cargar` queda para Reintentar.)
+  useEffect(() => {
+    let vivo = true
+    svc.fetchProveedores()
+      .then(data => { if (vivo) setProveedores(data) })
+      .catch(() => { if (vivo) setError('No se pudo conectar con el servidor.') })
+      .finally(() => { if (vivo) setCargando(false) })
+    return () => { vivo = false }
+  }, [])
 
   async function cargar() {
     try {
@@ -707,9 +730,12 @@ export default function Proveedores() {
   })
 
   const totalDocs = proveedores.reduce((n, p) => n + (p.documentos?.length ?? 0), 0)
+  const hayFiltros = !!busqueda || !!filtroTipo
+  const limpiarFiltros = () => { setBusqueda(''); setFiltroTipo('') }
 
   return (
     <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+      <style>{`@keyframes gpSkeleton { 0%,100% { opacity: 0.4 } 50% { opacity: 0.75 } }`}</style>
 
       {/* HEADER */}
       <div style={{ marginBottom: 24 }}>
@@ -723,7 +749,7 @@ export default function Proveedores() {
       </div>
 
       {/* STATS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Total proveedores', value: proveedores.length, color: C.textPrimary },
           { label: 'Insumos-MP',        value: proveedores.filter(p => p.tipoProveedor === 'insumos_mp').length, color: C.blue },
@@ -751,6 +777,17 @@ export default function Proveedores() {
           <option value="">Todos los tipos</option>
           {TIPOS_PROVEEDOR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
+        {hayFiltros && (
+          <button onClick={limpiarFiltros} style={{
+            background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: '9px 14px', cursor: 'pointer', fontSize: 13, color: C.textSecondary, fontFamily: 'inherit',
+          }}>✕ Limpiar</button>
+        )}
+        {!cargando && !error && (
+          <span style={{ fontSize: 13, color: C.textSecondary }}>
+            {filtrados.length} de {proveedores.length}
+          </span>
+        )}
         <div style={{ marginLeft: 'auto' }}>
           {puede('proveedores', 'editar') && <Button onClick={() => setModalNuevo(true)}>+ Nuevo proveedor</Button>}
         </div>
@@ -758,8 +795,24 @@ export default function Proveedores() {
 
       {/* CONTENIDO */}
       {cargando && (
-        <Card style={{ textAlign: 'center', padding: 48 }}>
-          <div style={{ fontSize: 13, color: C.textSecondary }}>Cargando proveedores...</div>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Proveedor</th>
+                  <th style={thStyle}>Tipo</th>
+                  <th style={thStyle}>Ubicación</th>
+                  <th style={thStyle}>Contacto</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Docs.</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 5 }).map((_, i) => <FilaSkeleton key={i} />)}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
       {error && !cargando && (
@@ -780,7 +833,9 @@ export default function Proveedores() {
       )}
       {!cargando && !error && proveedores.length > 0 && filtrados.length === 0 && (
         <Card style={{ textAlign: 'center', padding: 48 }}>
-          <div style={{ fontSize: 13, color: C.textSecondary }}>Ningún proveedor coincide con los filtros.</div>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>🔍</div>
+          <div style={{ fontSize: 13, color: C.textSecondary, marginBottom: 14 }}>Ningún proveedor coincide con los filtros.</div>
+          <Button variant="secondary" onClick={limpiarFiltros}>Limpiar filtros</Button>
         </Card>
       )}
       {!cargando && !error && filtrados.length > 0 && (

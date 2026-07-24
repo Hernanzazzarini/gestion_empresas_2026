@@ -77,6 +77,8 @@ const initialForm = {
   etiqueta_leyenda:  null,
   etiqueta_especial: null,
   obs_etiquetas:     '',
+  carga_libre_cuerpos_extranos: null,
+  obs_control_elementos:        '',
   punto_rocio:       '',
   temp_tempering:    '',
   humedad_tempering: '',
@@ -559,6 +561,22 @@ export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose,
           <Textarea label="Observaciones Etiquetas" placeholder="Observaciones..."
             value={form.obs_etiquetas}
             onChange={e => set('obs_etiquetas', e.target.value)} />
+        </div>
+      </div>
+
+      {/* ── CONTROL DE ELEMENTOS ── */}
+      <div>
+        <SeccionTitulo icon="🔍" title="Control de Elementos" color={C.accent} />
+        <div style={{
+          background: C.surfaceHigh, borderRadius: 10, padding: 16,
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+          <SiNoNaGrande label="Carga libre de cuerpos extraños"
+            value={form.carga_libre_cuerpos_extranos}
+            onChange={v => set('carga_libre_cuerpos_extranos', v)} />
+          <Textarea label="Observaciones" placeholder="Observaciones..."
+            value={form.obs_control_elementos}
+            onChange={e => set('obs_control_elementos', e.target.value)} />
         </div>
       </div>
 

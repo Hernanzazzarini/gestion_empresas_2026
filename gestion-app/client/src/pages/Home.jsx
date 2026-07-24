@@ -76,9 +76,24 @@ const moduloDeRuta = (to) => {
   return null
 }
 
+// Saludo según la hora del día.
+const saludoHorario = () => {
+  const h = new Date().getHours()
+  if (h < 6)  return 'Buenas noches'
+  if (h < 13) return 'Buenos días'
+  if (h < 20) return 'Buenas tardes'
+  return 'Buenas noches'
+}
+
+const rolLabel = {
+  administrador: 'Administrador',
+  mandos_medios: 'Mandos medios',
+  operarios: 'Operario',
+}
+
 export default function Home() {
   const navigate = useNavigate()
-  const { puede, esAdmin } = useAuth()
+  const { puede, esAdmin, usuario } = useAuth()
   // null = todavía cargando; sólo el admin puede consultar /api/auth/usuarios.
   const [usuariosActivos, setUsuariosActivos] = useState(null)
 
@@ -90,6 +105,8 @@ export default function Home() {
       .catch(() => { /* si falla, la tarjeta queda en "—" */ })
     return () => { vivo = false }
   }, [esAdmin])
+
+  const nombre = usuario?.nombre || usuario?.usuario || ''
 
   // Ocultar links sin permiso de lectura y tarjetas que quedan sin links.
   const modulosVisibles = modules
@@ -103,16 +120,20 @@ export default function Home() {
     .filter(mod => mod.links.length > 0)
 
   const stats = [
-    { label: 'Módulos activos', value: String(modulosVisibles.length), icon: '✅' },
-    { label: 'En desarrollo',   value: '0', icon: '🚧' },
+    { label: 'Módulos activos', value: String(modulosVisibles.length), icon: '✅', cargando: false },
+    { label: 'En desarrollo',   value: '0', icon: '🚧', cargando: false },
     // El conteo de usuarios es información de administración: sólo se muestra al admin.
     ...(esAdmin
-      ? [{ label: 'Usuarios activos', value: usuariosActivos ?? '—', icon: '👤' }]
+      ? [{ label: 'Usuarios activos', value: usuariosActivos, icon: '👤', cargando: usuariosActivos === null }]
       : []),
   ]
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+      <style>{`
+        @keyframes gpFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes gpPulse  { 0%,100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+      `}</style>
 
       {/* HEADER */}
       <div style={{ marginBottom: 36 }}>
@@ -126,17 +147,29 @@ export default function Home() {
           fontSize: 32, fontWeight: 900, color: '#f1f5f9',
           margin: 0, letterSpacing: '-0.02em',
         }}>
-          Bienvenido a GestiónPro
+          {saludoHorario()}{nombre ? `, ${nombre}` : ''} 👋
         </h1>
-        <p style={{ color: '#64748b', marginTop: 8, fontSize: 15 }}>
-          Sistema integral de gestión empresarial. Seleccioná un módulo para comenzar.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+          <p style={{ color: '#64748b', margin: 0, fontSize: 15 }}>
+            Sistema integral de gestión empresarial. Seleccioná un módulo para comenzar.
+          </p>
+          {usuario?.rol && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: '#f59e0b',
+              background: '#f59e0b18', border: '1px solid #f59e0b44',
+              borderRadius: 20, padding: '2px 10px', textTransform: 'uppercase',
+              letterSpacing: '0.06em', whiteSpace: 'nowrap',
+            }}>
+              {rolLabel[usuario.rol] || usuario.rol}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* STATS */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 14,
         marginBottom: 36,
       }}>
@@ -148,12 +181,19 @@ export default function Home() {
             padding: '18px 20px',
           }}>
             <div style={{ fontSize: 22, marginBottom: 6 }}>{stat.icon}</div>
-            <div style={{
-              fontSize: 28, fontWeight: 900, color: '#f1f5f9',
-              fontFamily: "'Courier New', monospace", lineHeight: 1,
-            }}>
-              {stat.value}
-            </div>
+            {stat.cargando ? (
+              <div style={{
+                width: 40, height: 28, borderRadius: 6, background: '#2a3045',
+                animation: 'gpPulse 1.2s ease-in-out infinite',
+              }} />
+            ) : (
+              <div style={{
+                fontSize: 28, fontWeight: 900, color: '#f1f5f9',
+                fontFamily: "'Courier New', monospace", lineHeight: 1,
+              }}>
+                {stat.value ?? '—'}
+              </div>
+            )}
             <div style={{
               fontSize: 12, color: '#64748b', marginTop: 4,
               textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -174,21 +214,33 @@ export default function Home() {
         </h2>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 16,
-      }}>
-        {modulosVisibles.map(mod => (
-          <ModuleCard key={mod.title} mod={mod} onNavigate={navigate} />
-        ))}
-      </div>
+      {modulosVisibles.length === 0 ? (
+        <div style={{
+          background: '#181c27', border: '1px dashed #2a3045', borderRadius: 12,
+          padding: '40px 24px', textAlign: 'center', color: '#64748b',
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+          <div style={{ fontSize: 14 }}>
+            No tenés módulos habilitados. Pedile acceso al administrador del sistema.
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 16,
+        }}>
+          {modulosVisibles.map((mod, i) => (
+            <ModuleCard key={mod.title} mod={mod} onNavigate={navigate} indice={i} />
+          ))}
+        </div>
+      )}
 
     </div>
   )
 }
 
-function ModuleCard({ mod, onNavigate }) {
+function ModuleCard({ mod, onNavigate, indice = 0 }) {
   const [hover, setHover] = useState(false)
 
   return (
@@ -201,11 +253,15 @@ function ModuleCard({ mod, onNavigate }) {
         borderTop: `3px solid ${mod.available ? mod.color : '#2a3045'}`,
         borderRadius: 12,
         padding: 22,
-        transition: 'all 0.18s',
+        transition: 'transform 0.18s, background 0.18s, border-color 0.18s, box-shadow 0.18s',
+        transform: hover && mod.available ? 'translateY(-3px)' : 'none',
+        boxShadow: hover && mod.available ? `0 12px 28px -12px ${mod.color}66` : 'none',
         opacity: mod.available ? 1 : 0.5,
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
+        animation: `gpFadeUp 0.35s ease-out both`,
+        animationDelay: `${indice * 60}ms`,
       }}
     >
       {/* Icono + título */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { useAuth } from '../../context/AuthContext'
@@ -8,6 +8,17 @@ import {
 } from '../../services/reclamos'
 
 const API_UPLOADS = 'http://localhost:3000/uploads'
+
+// Paleta del PDF: mismo tema oscuro que el checklist/desvíos, pero con el
+// acento celeste que identifica a Reclamos.
+const PDF = {
+  negro:      [15,  17,  23],
+  superficie: [24,  28,  39],
+  borde:      [42,  48,  69],
+  acento:     [8,   145, 178],
+  gris:       [148, 163, 184],
+  blanco:     [241, 245, 249],
+}
 
 // ─── Catálogos ───────────────────────────────────────────────────────────────
 const TIPOS         = ['Formal', 'No Formal']
@@ -306,16 +317,35 @@ const InfoRow = ({ label: lbl, value }) => (
 const exportarPDF = async (reclamo) => {
   const doc = new jsPDF()
   const pageW = doc.internal.pageSize.getWidth()
+  const pageH = doc.internal.pageSize.getHeight()
 
-  doc.setFillColor(15, 17, 23)
+  // Fondo oscuro en toda la página (igual que el checklist / desvíos).
+  const fondo = () => {
+    doc.setFillColor(...PDF.negro)
+    doc.rect(0, 0, pageW, pageH, 'F')
+  }
+  // Páginas ya pintadas: evita repintar (y borrar) una página con contenido.
+  const paginasPintadas = new Set()
+  const pintarPagina = () => {
+    const n = doc.getCurrentPageInfo().pageNumber
+    if (paginasPintadas.has(n)) return
+    fondo()
+    paginasPintadas.add(n)
+  }
+  pintarPagina()
+
+  // Header
+  doc.setFillColor(...PDF.superficie)
   doc.rect(0, 0, pageW, 40, 'F')
-  doc.setTextColor(8, 145, 178)
+  doc.setFillColor(...PDF.acento)
+  doc.rect(0, 0, 4, 40, 'F')
+  doc.setTextColor(...PDF.acento)
   doc.setFontSize(18)
   doc.setFont('helvetica', 'bold')
   doc.text(`Reclamo ${reclamo.nroReclamo}`, 14, 16)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(148, 163, 184)
+  doc.setTextColor(...PDF.gris)
   doc.text(`${reclamo.destinatario}  |  ${reclamo.motivo}  |  ${new Date(reclamo.fechaReclamo).toLocaleDateString('es-AR')}`, 14, 26)
   doc.text(`Estado: ${reclamo.estado}  |  Gravedad: ${reclamo.gravedad}`, 14, 34)
 
@@ -323,17 +353,20 @@ const exportarPDF = async (reclamo) => {
   const addSection = (title, rows) => {
     doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(8, 145, 178)
+    doc.setTextColor(...PDF.acento)
     doc.text(title, 14, y)
     y += 2
     autoTable(doc, {
       startY: y,
       head: [],
       body: rows,
-      theme: 'striped',
-      styles: { fontSize: 10, cellPadding: 4, textColor: [30, 30, 30] },
-      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55, fillColor: [240, 240, 240] } },
-      margin: { left: 14, right: 14 },
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 4, fillColor: PDF.superficie, textColor: PDF.blanco },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55, fillColor: PDF.borde, textColor: PDF.acento } },
+      margin: { left: 14, right: 14, top: 14 },
+      // Si la tabla desborda a una página nueva, pintar su fondo oscuro
+      // ANTES de dibujar las celdas (si no, quedaría blanca).
+      willDrawPage: pintarPagina,
     })
     y = doc.lastAutoTable.finalY + 10
   }
@@ -390,10 +423,10 @@ const exportarPDF = async (reclamo) => {
           reader.onloadend = () => resolve(reader.result)
           reader.readAsDataURL(blob)
         })
-        if (y + 80 > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); y = 20 }
+        if (y + 80 > pageH - 20) { doc.addPage(); pintarPagina(); y = 20 }
         doc.setFontSize(10)
         doc.setFont('helvetica', 'normal')
-        doc.setTextColor(100)
+        doc.setTextColor(...PDF.gris)
         doc.text(`${a.tipo === 'reclamo' ? 'Reclamo' : 'Evidencia'}: ${a.nombre_original || ''}`, 14, y)
         y += 4
         doc.addImage(dataUrl, 'JPEG', 14, y, 80, 60)
@@ -713,34 +746,65 @@ const DetalleReclamo = ({ reclamo: initialReclamo, onClose, onUpdate, onEdit }) 
   )
 }
 
+// ─── Fila skeleton (carga) ────────────────────────────────────────────────────
+const FilaSkeleton = ({ cols }) => (
+  <tr>
+    {Array.from({ length: cols }).map((_, i) => (
+      <td key={i} style={{ padding: '14px' }}>
+        <div style={{ height: 12, borderRadius: 4, background: '#1e293b', animation: 'gpSkeleton 1.2s ease-in-out infinite' }} />
+      </td>
+    ))}
+  </tr>
+)
+
 // ─── Panel lateral (slide-in) ─────────────────────────────────────────────────
-const Panel = ({ title, onClose, children, wide }) => (
-  <div style={{
-    position: 'fixed', inset: 0, zIndex: 1000,
-    display: 'flex', justifyContent: 'flex-end',
-  }}>
-    <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: '#00000088' }} />
+const Panel = ({ title, onClose, children, wide }) => {
+  // Cerrar con Escape + bloquear el scroll del fondo mientras el panel está abierto.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return (
     <div style={{
-      position: 'relative',
-      width: wide ? 860 : 740,
-      maxWidth: '95vw',
-      height: '100%',
-      background: '#0f1117',
-      borderLeft: '1px solid #2a3045',
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
+      position: 'fixed', inset: 0, zIndex: 1000,
+      display: 'flex', justifyContent: 'flex-end',
     }}>
-      <div style={{ padding: '20px 28px', borderBottom: '1px solid #2a3045', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <h2 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>{title}</h2>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
-      </div>
-      <div style={{ padding: 28, flex: 1 }}>
-        {children}
+      <style>{`
+        @keyframes gpBackdrop { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes gpSlideIn  { from { transform: translateX(100%) } to { transform: translateX(0) } }
+      `}</style>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: '#00000088', animation: 'gpBackdrop 0.2s ease-out' }} />
+      <div style={{
+        position: 'relative',
+        width: wide ? 860 : 740,
+        maxWidth: '95vw',
+        height: '100%',
+        background: '#0f1117',
+        borderLeft: '1px solid #2a3045',
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        animation: 'gpSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        boxShadow: '-20px 0 60px -20px rgba(0,0,0,0.7)',
+      }}>
+        <div style={{ padding: '20px 28px', borderBottom: '1px solid #2a3045', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, position: 'sticky', top: 0, background: '#0f1117', zIndex: 1 }}>
+          <h2 style={{ color: '#f1f5f9', fontSize: 18, margin: 0 }}>{title}</h2>
+          <button onClick={onClose} title="Cerrar (Esc)" style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ padding: 28, flex: 1 }}>
+          {children}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function Reclamos() {
@@ -755,15 +819,16 @@ export default function Reclamos() {
   const [selected, setSelected]     = useState(null)
   const [deletingId, setDeletingId] = useState(null)
 
-  const cargar = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await listarReclamos(filtros)
-      setReclamos(data)
-    } finally { setLoading(false) }
+  // Carga la lista cada vez que cambian los filtros. El guard `vivo` evita que
+  // una respuesta tardía pise a la más reciente y actualizar tras desmontar.
+  useEffect(() => {
+    let vivo = true
+    listarReclamos(filtros)
+      .then(data => { if (vivo) setReclamos(data) })
+      .catch(() => { if (vivo) setReclamos([]) })
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
   }, [filtros])
-
-  useEffect(() => { cargar() }, [cargar])
 
   // Años disponibles para el filtro (una sola carga, sin filtrar)
   useEffect(() => {
@@ -774,6 +839,8 @@ export default function Reclamos() {
   }, [])
 
   const setFiltro = (k) => (e) => setFiltros(f => ({ ...f, [k]: e.target.value }))
+  const hayFiltros = Object.values(filtros).some(Boolean)
+  const limpiarFiltros = () => setFiltros({ estado: '', tipo: '', destinatario: '', motivo: '', gravedad: '', anio: '' })
 
   const handleSuccess = (reclamo) => {
     setReclamos(prev => {
@@ -805,6 +872,8 @@ export default function Reclamos() {
 
   return (
     <div>
+      <style>{`@keyframes gpSkeleton { 0%,100% { opacity: 0.4 } 50% { opacity: 0.75 } }`}</style>
+
       {/* Título */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
@@ -845,29 +914,50 @@ export default function Reclamos() {
           <option value="">Todos los años</option>
           {anios.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+        {hayFiltros && (
+          <button onClick={limpiarFiltros}
+            style={{ padding: '8px 14px', background: 'transparent', border: '1px solid #2a3045', borderRadius: 8, color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
+            ✕ Limpiar
+          </button>
+        )}
+        <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 13 }}>
+          {loading ? '' : `${reclamos.length} resultado${reclamos.length === 1 ? '' : 's'}`}
+        </span>
       </div>
 
       {/* Tabla */}
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        {loading ? (
-          <p style={{ color: '#64748b', padding: 32, textAlign: 'center' }}>Cargando...</p>
-        ) : reclamos.length === 0 ? (
-          <p style={{ color: '#64748b', padding: 32, textAlign: 'center' }}>
-            No hay reclamos registrados.
-          </p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #2a3045' }}>
-                  {['N° Reclamo', 'Fecha', 'Tipo', 'Cliente', 'Destinatario', 'Motivo', 'Lote', 'Año', 'Gravedad', 'Estado', 'Adjuntos', 'Acciones'].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a3045' }}>
+                {['N° Reclamo', 'Fecha', 'Tipo', 'Cliente', 'Destinatario', 'Motivo', 'Lote', 'Año', 'Gravedad', 'Estado', 'Adjuntos', 'Acciones'].map(h => (
+                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => <FilaSkeleton key={i} cols={12} />)
+              ) : reclamos.length === 0 ? (
+                <tr>
+                  <td colSpan={12} style={{ padding: 48, textAlign: 'center' }}>
+                    <div style={{ fontSize: 34, marginBottom: 10 }}>{hayFiltros ? '🔍' : '📋'}</div>
+                    <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: hayFiltros ? 14 : 0 }}>
+                      {hayFiltros ? 'No hay reclamos que coincidan con los filtros.' : 'Aún no hay reclamos registrados.'}
+                    </div>
+                    {hayFiltros && (
+                      <button onClick={limpiarFiltros}
+                        style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #2a3045', borderRadius: 8, color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {reclamos.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #1e293b' }}
+              ) : (
+                reclamos.map(r => (
+                  <tr key={r.id} style={{ borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
+                    onClick={() => { setSelected(r); setPanel('detalle') }}
                     onMouseEnter={e => e.currentTarget.style.background = '#181c27'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '12px 14px', color: '#f59e0b', fontWeight: 600 }}>{r.nroReclamo}</td>
@@ -897,12 +987,12 @@ export default function Reclamos() {
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => { setSelected(r); setPanel('detalle') }}
+                        <button onClick={(e) => { e.stopPropagation(); setSelected(r); setPanel('detalle') }}
                           style={{ padding: '4px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', fontSize: 12 }}>
                           Ver
                         </button>
                         {puedeEliminar && (
-                          <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(r.id) }} disabled={deletingId === r.id}
                             style={{ padding: '4px 10px', background: '#dc262614', border: '1px solid #dc262640', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
                             {deletingId === r.id ? '...' : 'Eliminar'}
                           </button>
@@ -910,11 +1000,11 @@ export default function Reclamos() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Panel Nuevo / Editar */}
