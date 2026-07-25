@@ -5,12 +5,9 @@ server/node_modules/
 
 # ─── VARIABLES DE ENTORNO ────────────────────────────────────────────────────
 # Ignoramos tanto los .env reales (con credenciales) como los .env.example.
+# Las reglas sueltas matchean cualquier .env a cualquier profundidad del árbol.
 .env
 .env.example
-client/.env
-client/.env.example
-server/.env
-server/.env.example
 
 # ─── FOTOS SUBIDAS POR USUARIOS ──────────────────────────────────────────────
 uploads/
