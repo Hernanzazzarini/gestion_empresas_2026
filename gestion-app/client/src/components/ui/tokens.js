@@ -39,6 +39,7 @@ export const colors = {
     'Mantenimiento',
     'Lab.Terminado',
     'Tostado-Pasta',
+    'Inocuidad',
 
 
 

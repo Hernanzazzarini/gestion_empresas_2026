@@ -77,6 +77,8 @@ const initialForm = {
   etiqueta_leyenda:  null,
   etiqueta_especial: null,
   obs_etiquetas:     '',
+  carga_libre_cuerpos_extranos: null,
+  obs_control_elementos:        '',
   punto_rocio:       '',
   temp_tempering:    '',
   humedad_tempering: '',
@@ -284,7 +286,7 @@ function FotoSlot({ numero, url, filename, onSubir, onEliminar, subiendo }) {
 
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 // Agregar contenedorId como prop
-export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose, modoEdicion }) {
+export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose, modoEdicion, lotesExistentes = [] }) {
   const [form, setForm]         = useState(inicial || initialForm)
   const [errores, setErrores]   = useState({})
   const [subiendo, setSubiendo] = useState({ 1: false, 2: false, 3: false, 4: false })
@@ -303,6 +305,10 @@ export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose,
   const validar = () => {
     const e = {}
     if (!form.firma_cargador.trim()) e.firma_cargador = 'La firma del cargador es obligatoria'
+    const lote = form.lote.trim()
+    if (lote && lotesExistentes.some(l => String(l).trim().toLowerCase() === lote.toLowerCase())) {
+      e.lote = 'Este lote ya fue cargado en otro contenedor'
+    }
     setErrores(e)
     return Object.keys(e).length === 0
   }
@@ -479,9 +485,12 @@ export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose,
       {/* ── DATOS DEL LOTE ── */}
       <div>
         <SeccionTitulo icon="📦" title="Datos del Lote" color={C.purple} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-          <Input label="Lote" value={form.lote}
-            onChange={e => set('lote', e.target.value)} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, alignItems: 'flex-start' }}>
+          <div>
+            <Input label="Lote" value={form.lote}
+              onChange={e => set('lote', e.target.value)} />
+            {errores.lote && <Err>{errores.lote}</Err>}
+          </div>
           <Input label="Nº BLS / BB" value={form.nro_bls_bb}
             onChange={e => set('nro_bls_bb', e.target.value)} />
           <Input label="Calibre" value={form.calibre}
@@ -559,6 +568,22 @@ export default function FormSeccion2({ inicial, contenedorId, onSubmit, onClose,
           <Textarea label="Observaciones Etiquetas" placeholder="Observaciones..."
             value={form.obs_etiquetas}
             onChange={e => set('obs_etiquetas', e.target.value)} />
+        </div>
+      </div>
+
+      {/* ── CONTROL DE ELEMENTOS ── */}
+      <div>
+        <SeccionTitulo icon="🔍" title="Control de Elementos" color={C.accent} />
+        <div style={{
+          background: C.surfaceHigh, borderRadius: 10, padding: 16,
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+          <SiNoNaGrande label="Carga libre de cuerpos extraños"
+            value={form.carga_libre_cuerpos_extranos}
+            onChange={v => set('carga_libre_cuerpos_extranos', v)} />
+          <Textarea label="Observaciones" placeholder="Observaciones..."
+            value={form.obs_control_elementos}
+            onChange={e => set('obs_control_elementos', e.target.value)} />
         </div>
       </div>
 

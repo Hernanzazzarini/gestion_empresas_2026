@@ -1,0 +1,58 @@
+# Render Blueprint — backend de GestiónPro (API Node/Express).
+# El frontend va en Vercel (ver vercel.json + DEPLOY.md), no acá.
+# La base MySQL es externa (Aiven) y los uploads van a Cloudinary.
+#
+# Para usarlo: en Render → New → Blueprint → apuntar a este repo.
+# Las variables marcadas `sync: false` se cargan a mano en el dashboard (secretos).
+services:
+  - type: web
+    name: gestionpro-api
+    runtime: node
+    rootDir: gestion-app/server
+    plan: free
+    buildCommand: npm ci
+    startCommand: node index.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES
+        value: 8h
+      # ── Base de datos (Aiven) ──
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      # ── Auth ──
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_USER
+        sync: false
+      - key: ADMIN_PASS
+        sync: false
+      - key: ADMIN_NOMBRE
+        sync: false
+      # ── Cloudinary (uploads) ──
+      - key: CLOUDINARY_URL
+        sync: false
+      # ── Email (opcional, notificaciones) ──
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        sync: false
+      - key: EMAIL_SECURE
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

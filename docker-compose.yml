@@ -1,0 +1,44 @@
+# ─── DESARROLLO ──────────────────────────────────────────────────────────────
+# Levanta server (nodemon) + client (Vite HMR) con el código montado por volumen.
+# La base MySQL es la que ya tenés instalada en tu máquina (host.docker.internal).
+#
+#   docker compose up            # build + arranca ambos
+#   docker compose up --build    # fuerza rebuild de imágenes
+#   docker compose down          # detiene y limpia
+#
+# Requisitos: gestion-app/server/.env completo (ver .env.example).
+# Client:  http://localhost:5173      Server API: http://localhost:3000
+
+services:
+  server:
+    build:
+      context: ./gestion-app/server
+      target: dev
+    env_file:
+      - ./gestion-app/server/.env
+    environment:
+      # Dentro del contenedor, "localhost" es el propio contenedor.
+      # La DB corre en el host → host.docker.internal.
+      DB_HOST: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # para Linux (en Mac/Win ya resuelve)
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gestion-app/server:/app          # código con hot-reload
+      - /app/node_modules                  # preserva los node_modules de la imagen
+      - ./gestion-app/uploads:/uploads     # fotos/PDF subidos (persisten en el host)
+
+  client:
+    build:
+      context: ./gestion-app/client
+      target: dev
+    environment:
+      CHOKIDAR_USEPOLLING: "true"          # file-watching confiable sobre bind-mounts
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./gestion-app/client:/app
+      - /app/node_modules
+    depends_on:
+      - server

@@ -7,6 +7,9 @@ import {
 import { Card } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 
+// Paleta cíclica para categorías (destinos)
+const PALETA = [C.accent, C.blue, C.green, C.purple, C.red, '#06b6d4', '#ec4899', '#84cc16']
+
 // ─── TOOLTIP PERSONALIZADO ────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -118,6 +121,30 @@ export default function DashboardContenedores({ items }) {
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 6)
 
+    // ── Por destino de descarga ──
+    const destinoConteo = items.reduce((acc, item) => {
+      const destino = (item.destino_descarga || '').trim() || 'Sin destino'
+      acc[destino] = (acc[destino] || 0) + 1
+      return acc
+    }, {})
+    const destinoOrdenado = Object.entries(destinoConteo)
+      .map(([destino, cantidad]) => ({ name: destino, cantidad }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+
+    // Ranking (top 8) para barras horizontales
+    const porDestino = destinoOrdenado.slice(0, 8)
+
+    // Torta: top 6 + "Otros" (agrupa el resto para no saturar)
+    const TOP = 6
+    const destinoTorta = destinoOrdenado.slice(0, TOP).map((d, i) => ({
+      name: d.name, value: d.cantidad, fill: PALETA[i % PALETA.length],
+    }))
+    const restoDestinos = destinoOrdenado.slice(TOP).reduce((s, d) => s + d.cantidad, 0)
+    if (restoDestinos > 0) destinoTorta.push({ name: 'Otros', value: restoDestinos, fill: C.border })
+
+    // Destinos distintos (excluye "Sin destino")
+    const destinosDistintos = destinoOrdenado.filter(d => d.name !== 'Sin destino').length
+
     // ── Temperatura promedio por mes ──
     const tempPorMes = Object.entries(
       items.reduce((acc, item) => {
@@ -144,8 +171,8 @@ export default function DashboardContenedores({ items }) {
 
     return {
       aptosVsNoAptos, porMes, resultadoInspeccion,
-      porEmpresa, tempPorMes,
-      stats: { total, completados, pendientes, aptos, noAptos, tasaAptos },
+      porEmpresa, tempPorMes, porDestino, destinoTorta,
+      stats: { total, completados, pendientes, aptos, noAptos, tasaAptos, destinosDistintos },
     }
 
   }, [items])
@@ -168,7 +195,7 @@ export default function DashboardContenedores({ items }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* STATS GENERALES */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
         <StatCard
           icon="🚛" label="Total Registros"
           value={datos.stats.total} color={C.textPrimary}
@@ -185,6 +212,11 @@ export default function DashboardContenedores({ items }) {
         <StatCard
           icon="⏳" label="Pendientes Carga"
           value={datos.stats.pendientes} color={C.accent}
+        />
+        <StatCard
+          icon="📍" label="Destinos"
+          value={datos.stats.destinosDistintos} color={C.purple}
+          sub="destinos distintos"
         />
       </div>
 
@@ -356,6 +388,70 @@ export default function DashboardContenedores({ items }) {
               </LineChart>
             </ResponsiveContainer>
           )}
+        </Card>
+
+      </div>
+
+      {/* FILA 4 — Destinos de descarga */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Distribución por destino — Torta */}
+        <Card>
+          <ChartTitle>Distribución por Destino</ChartTitle>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={datos.destinoTorta}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
+                labelLine={false}
+              >
+                {datos.destinoTorta.map((entry, i) => (
+                  <Cell key={i} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                formatter={(value) => (
+                  <span style={{ color: C.textSecondary, fontSize: 12 }}>{value}</span>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* Ranking por destino — Barras horizontales */}
+        <Card>
+          <ChartTitle>Contenedores por Destino</ChartTitle>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={datos.porDestino} layout="vertical" barSize={18}>
+              <XAxis
+                type="number"
+                tick={{ fill: C.textSecondary, fontSize: 12 }}
+                axisLine={false} tickLine={false}
+                allowDecimals={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: C.textSecondary, fontSize: 10 }}
+                axisLine={false} tickLine={false}
+                width={110}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="cantidad" radius={[0, 6, 6, 0]}>
+                {datos.porDestino.map((_, i) => (
+                  <Cell key={i} fill={PALETA[i % PALETA.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </Card>
 
       </div>

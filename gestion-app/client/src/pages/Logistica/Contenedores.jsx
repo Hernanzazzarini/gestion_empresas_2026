@@ -6,6 +6,7 @@ import FormSeccion2 from './FormSeccion2'
 import HistorialContenedores from './HistorialContenedores'
 import DashboardContenedores from './DashboardContenedores'
 import * as svc from '../../services/contenedores'
+import { useAuth } from '../../context/AuthContext'
 
 const estadoConfig = {
   pendiente_carga: { label: 'Pendiente Carga', color: '#f59e0b', bg: '#451a03' },
@@ -114,6 +115,7 @@ const tabs = [
 ]
 
 export default function Contenedores() {
+  const { puede } = useAuth()
   const [items, setItems]               = useState([])
   const [rol, setRol]                   = useState('inocuidad')
   const [tab, setTab]                   = useState('registros')
@@ -123,8 +125,6 @@ export default function Contenedores() {
   const [modalNuevo, setModalNuevo]     = useState(false)
   const [modalSec1, setModalSec1]       = useState(false)
   const [modalSec2, setModalSec2]       = useState(false)
-
-  useEffect(() => { cargar() }, [])
 
   const cargar = async () => {
     try {
@@ -138,6 +138,15 @@ export default function Contenedores() {
       setCargando(false)
     }
   }
+
+  useEffect(() => {
+    let vivo = true
+    svc.fetchContenedores()
+      .then(data => { if (vivo) setItems(data) })
+      .catch(() => { if (vivo) setError('No se pudo conectar con el servidor.') })
+      .finally(() => { if (vivo) setCargando(false) })
+    return () => { vivo = false }
+  }, [])
 
   const abrirDetalle = async (item) => {
     try {
@@ -176,8 +185,8 @@ export default function Contenedores() {
       await svc.completarSeccion2(seleccionado.id, form)
       await cargar()
       setModalSec2(false)
-    } catch {
-      alert('Error al guardar los cambios.')
+    } catch (err) {
+      alert(err.message || 'Error al guardar los cambios.')
     }
   }
 
@@ -324,7 +333,7 @@ export default function Contenedores() {
 
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-            {rol === 'inocuidad' && (
+            {rol === 'inocuidad' && puede('contenedores', 'editar') && (
               <Button onClick={() => setModalNuevo(true)}>+ Nuevo Control</Button>
             )}
           </div>
@@ -398,6 +407,9 @@ export default function Contenedores() {
           <FormSeccion2
             contenedorId={seleccionado.id}
             inicial={seleccionado.seccion2 || undefined}
+            lotesExistentes={items
+              .filter(i => i.id !== seleccionado.id && i.lote)
+              .map(i => i.lote)}
             onClose={() => setModalSec2(false)}
             onSubmit={handleCompletarSec2}
             modoEdicion={!!seleccionado.seccion2}

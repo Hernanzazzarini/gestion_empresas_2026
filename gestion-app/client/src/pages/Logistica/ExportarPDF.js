@@ -36,22 +36,6 @@ const temp = (v) => {
   return `${v} °C`
 }
 
-// ─── CARGAR IMAGEN CON FETCH ──────────────────────────────────────────────────
-const cargarImagenBase64 = async (url) => {
-  try {
-    const res  = await fetch(url)
-    const blob = await res.blob()
-    return new Promise((resolve) => {
-      const reader    = new FileReader()
-      reader.onload  = () => resolve(reader.result)
-      reader.onerror = () => resolve(null)
-      reader.readAsDataURL(blob)
-    })
-  } catch {
-    return null
-  }
-}
-
 export const exportarContenedorPDF = (data) => {  // ← ya no es async
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const s1  = data.seccion1 || {}
@@ -301,6 +285,24 @@ export const exportarContenedorPDF = (data) => {  // ← ya no es async
     ['Leyenda',                       siNo(s2.etiqueta_leyenda) ],
     ['Etiquetas Especial',            siNo(s2.etiqueta_especial)],
   ], y)
+
+  checkPagina(30)
+  secTitulo('Control de Elementos', COLOR.acento)
+  y = tablaItems([
+    ['Carga libre de cuerpos extraños', siNo(s2.carga_libre_cuerpos_extranos)],
+  ], y)
+
+  if (s2.obs_control_elementos) {
+    checkPagina(16)
+    doc.setFontSize(7)
+    doc.setTextColor(...COLOR.gris)
+    doc.text('OBSERVACIONES:', 10, y)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLOR.blanco)
+    doc.text(s2.obs_control_elementos, 10, y + 4, { maxWidth: W - 20 })
+    y += 14
+  }
 
   checkPagina(28)
   secTitulo('Control del Estado del Tiempo', COLOR.azul)
