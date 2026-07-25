@@ -26,16 +26,17 @@ export default function Auditoria() {
   const [loading, setLoading] = useState(true)
   const [filtros, setFiltros] = useState({ usuario: '', accion: '', modulo: '', desde: '', hasta: '' })
 
+  // El estado `loading` arranca en true (primer render) y se vuelve a activar desde
+  // los handlers de filtro; así el efecto no llama setState de forma sincrónica.
   const cargar = useCallback(async () => {
-    setLoading(true)
     try { setEventos(await listarAuditoria(filtros)) } finally { setLoading(false) }
   }, [filtros])
 
   useEffect(() => { cargar() }, [cargar])
   useEffect(() => { opcionesAuditoria().then(setOpciones).catch(() => {}) }, [])
 
-  const set = (k) => (e) => setFiltros(f => ({ ...f, [k]: e.target.value }))
-  const limpiar = () => setFiltros({ usuario: '', accion: '', modulo: '', desde: '', hasta: '' })
+  const set = (k) => (e) => { setLoading(true); setFiltros(f => ({ ...f, [k]: e.target.value })) }
+  const limpiar = () => { setLoading(true); setFiltros({ usuario: '', accion: '', modulo: '', desde: '', hasta: '' }) }
 
   return (
     <div>

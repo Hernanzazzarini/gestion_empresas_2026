@@ -6,8 +6,12 @@ import {
   listarDesvios, obtenerDesvio, crearDesvio, actualizarDesvio,
   cambiarEstado, agregarEvidencia, eliminarEvidencia, eliminarDesvio, notificarManual,
 } from '../../services/desvios'
+import { UPLOADS_URL } from '../../services/config'
 
-const API_UPLOADS = 'http://localhost:3000/uploads'
+const API_UPLOADS = UPLOADS_URL
+// Los archivos ahora se guardan como URL absoluta de Cloudinary; las filas viejas
+// guardaban una ruta relativa → se resuelven contra UPLOADS_URL.
+const urlArchivo = (p) => (p?.startsWith('http') ? p : `${API_UPLOADS}/${p}`)
 
 // Paleta del PDF (misma que el checklist de Logística → ExportarPDF.js).
 const PDF = {
@@ -398,7 +402,7 @@ const exportarPDF = async (desvio) => {
     // Intentar embeber imágenes
     for (const ev of desvio.evidencias) {
       try {
-        const url  = `${API_UPLOADS}/${ev.archivo_path}`
+        const url  = urlArchivo(ev.archivo_path)
         const resp = await fetch(url)
         const blob = await resp.blob()
         const dataUrl = await new Promise(resolve => {
@@ -623,7 +627,7 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
                   <Badge label={ev.tipo === 'antes' ? 'Antes' : 'Después'}
                     color={ev.tipo === 'antes' ? '#3b82f6' : '#16a34a'} />
                 </div>
-                <img src={`${API_UPLOADS}/${ev.archivo_path}`} alt={ev.nombre_original}
+                <img src={urlArchivo(ev.archivo_path)} alt={ev.nombre_original}
                   style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #2a3045' }} />
                 {puedeEditar && (
                   <button onClick={() => handleDeleteEv(ev.id)}

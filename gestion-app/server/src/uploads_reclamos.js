@@ -1,20 +1,7 @@
 const multer = require('multer')
-const path   = require('path')
-const fs     = require('fs')
 
-const uploadDir = path.join(__dirname, '../../uploads/reclamos')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext    = path.extname(file.originalname)
-    const nombre = `rec_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`
-    cb(null, nombre)
-  },
-})
+// Adjuntos de reclamos (imágenes + PDF) → Cloudinary (buffer en memoria, lo sube el service).
+const storage = multer.memoryStorage()
 
 const upload = multer({
   storage,
@@ -32,4 +19,4 @@ const upload = multer({
   },
 })
 
-module.exports = { upload, uploadDir }
+module.exports = { upload }

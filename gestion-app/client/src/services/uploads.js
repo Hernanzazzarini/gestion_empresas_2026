@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/uploads'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/uploads`
 
 export const subirFoto = async (archivo, contenedorId, numeroFoto) => {
   const formData = new FormData()

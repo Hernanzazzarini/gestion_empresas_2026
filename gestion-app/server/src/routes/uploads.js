@@ -1,24 +1,23 @@
 const express              = require('express')
 const router               = express.Router()
-const path                 = require('path')
-const fs                   = require('fs')
 const pool                 = require('../db')
-const { upload, uploadDir } = require('../uploads')
+const { upload }           = require('../uploads')
+const { subir, destruirPorUrl } = require('../cloudinary')
 
-// POST — subir foto y guardar URL en BD
+const CAMPOS = ['foto1', 'foto2', 'foto3', 'foto4']
+
+// POST — subir foto a Cloudinary y guardar la URL en BD
 router.post('/foto/:contenedorId/:numeroFoto', upload.single('foto'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' })
 
     const { contenedorId, numeroFoto } = req.params
-    const camposPermitidos = ['foto1', 'foto2', 'foto3', 'foto4']
     const campo = `foto${numeroFoto}`
-
-    if (!camposPermitidos.includes(campo)) {
+    if (!CAMPOS.includes(campo)) {
       return res.status(400).json({ error: 'Número de foto inválido' })
     }
 
-    const url = `http://localhost:3000/uploads/contenedores/${req.file.filename}`
+    const url = await subir(req.file.buffer, 'contenedores')
 
     // Verificar si ya existe la sección 2
     const [[existe]] = await pool.query(
@@ -27,20 +26,18 @@ router.post('/foto/:contenedorId/:numeroFoto', upload.single('foto'), async (req
     )
 
     if (existe) {
-      // Actualizar el campo de la foto
       await pool.query(
         `UPDATE contenedores_seccion2 SET ${campo} = ? WHERE contenedor_id = ?`,
         [url, contenedorId]
       )
     } else {
-      // Crear sección 2 con solo la foto
       await pool.query(
         `INSERT INTO contenedores_seccion2 (contenedor_id, ${campo}) VALUES (?, ?)`,
         [contenedorId, url]
       )
     }
 
-    res.json({ url, filename: req.file.filename })
+    res.json({ url })
 
   } catch (error) {
     console.error(error)
@@ -48,20 +45,22 @@ router.post('/foto/:contenedorId/:numeroFoto', upload.single('foto'), async (req
   }
 })
 
-// DELETE — eliminar foto y limpiar URL en BD
+// DELETE — borrar foto de Cloudinary y limpiar la URL en BD
 router.delete('/foto/:contenedorId/:numeroFoto', async (req, res) => {
   try {
     const { contenedorId, numeroFoto } = req.params
-    const { filename } = req.body
     const campo = `foto${numeroFoto}`
-
-    // Eliminar archivo físico
-    if (filename) {
-      const filePath = path.join(uploadDir, filename)
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    if (!CAMPOS.includes(campo)) {
+      return res.status(400).json({ error: 'Número de foto inválido' })
     }
 
-    // Limpiar URL en BD
+    // Leer la URL guardada y borrarla de Cloudinary
+    const [[fila]] = await pool.query(
+      `SELECT ${campo} AS url FROM contenedores_seccion2 WHERE contenedor_id = ?`,
+      [contenedorId]
+    )
+    if (fila?.url) await destruirPorUrl(fila.url)
+
     await pool.query(
       `UPDATE contenedores_seccion2 SET ${campo} = NULL WHERE contenedor_id = ?`,
       [contenedorId]

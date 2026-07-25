@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/proveedores'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/proveedores`
 
 const parseError = async (res, fallback) => {
   const err = await res.json().catch(() => ({}))

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Badge, PrioridadDot, Button, Input, Select, Card, Modal } from '../../components/ui'
 import { estadoConfig, prioridades, colors as C } from '../../components/ui/tokens'
 import FormNuevaOT from './FormNuevaOT'
@@ -105,22 +105,20 @@ export default function OTs() {
   const [error, setError]               = useState('')
 
   // ── Cargar OTs al iniciar ──
-  useEffect(() => {
-    cargarOTs()
+  // No hace setState de forma sincrónica: `cargando` ya arranca en true en el
+  // primer render, y el botón de reintento activa el spinner por su cuenta.
+  // Cadena de promesas (no async/await con try-catch): así ningún setState puede
+  // ejecutarse de forma sincrónica dentro del efecto (todos van en callbacks).
+  const cargarOTs = useCallback(() => {
+    otsService.fetchOTs()
+      .then(data => { setOts(data); setError('') })
+      .catch(() => setError('No se pudo conectar con el servidor.'))
+      .finally(() => setCargando(false))
   }, [])
 
-  const cargarOTs = async () => {
-    try {
-      setCargando(true)
-      setError('')
-      const data = await otsService.fetchOTs()
-      setOts(data)
-    } catch (err) {
-      setError('No se pudo conectar con el servidor.')
-    } finally {
-      setCargando(false)
-    }
-  }
+  useEffect(() => {
+    cargarOTs()
+  }, [cargarOTs])
 
   // ── Crear OT ──
   const handleCrearOT = async (form) => {
@@ -128,7 +126,7 @@ export default function OTs() {
       const nueva = await otsService.crearOT(form)
       setOts(prev => [nueva, ...prev])
       setModalNuevaOT(false)
-    } catch (err) {
+    } catch {
       alert('Error al crear la OT. Verificá que el servidor esté corriendo.')
     }
   }
@@ -139,7 +137,7 @@ export default function OTs() {
       const actualizada = await otsService.actualizarOT(id, data)
       setOts(prev => prev.map(o => o.id === id ? actualizada : o))
       setOtSeleccionada(prev => prev?.id === id ? actualizada : prev)
-    } catch (err) {
+    } catch {
       alert('Error al actualizar la OT.')
     }
   }
@@ -307,7 +305,7 @@ export default function OTs() {
           <Button
             variant="secondary"
             style={{ marginTop: 16 }}
-            onClick={cargarOTs}
+            onClick={() => { setCargando(true); cargarOTs() }}
           >
             🔄 Reintentar
           </Button>

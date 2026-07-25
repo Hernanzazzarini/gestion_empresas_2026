@@ -3,8 +3,12 @@ import { Button, Card, Modal } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 import * as svc from '../../services/documentos'
 import { useAuth } from '../../context/AuthContext'
+import { API_ORIGIN } from '../../services/config'
 
-const API_BASE = 'http://localhost:3000'
+const API_BASE = API_ORIGIN
+// Los archivos ahora se guardan como URL absoluta de Cloudinary; las filas viejas
+// guardaban una ruta relativa → se resuelven contra el server (/uploads).
+const urlArchivo = (p) => (p?.startsWith('http') ? p : `${API_BASE}/uploads/${p}`)
 
 const AREAS = ['inocuidad', 'calidad', 'produccion', 'logistica', 'general']
 const AREA_LABEL = {
@@ -213,7 +217,7 @@ function FormDocumento({ inicial, onSubmit, onClose }) {
           </div>
           <div>
             <label style={labelStyle}>Alertar con (días de anticipación)</label>
-            <input style={fieldStyle} type="number" min="1" max="365"
+            <input type="number" min="1" max="365"
               disabled={!tieneRevision}
               value={form.dias_alerta} onChange={set('dias_alerta')}
               style={{ ...fieldStyle, opacity: tieneRevision ? 1 : 0.4 }} />
@@ -223,7 +227,6 @@ function FormDocumento({ inicial, onSubmit, onClose }) {
         <div>
           <label style={labelStyle}>Destinatarios de alerta por email</label>
           <textarea
-            style={{ ...fieldStyle, resize: 'vertical', minHeight: 60 }}
             placeholder="email1@empresa.com, email2@empresa.com"
             disabled={!tieneRevision}
             value={form.destinatarios_email}
@@ -304,7 +307,7 @@ function PanelArchivo({ doc, onActualizar }) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a
-              href={`${API_BASE}/uploads/${doc.archivoPath}`}
+              href={urlArchivo(doc.archivoPath)}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -317,7 +320,7 @@ function PanelArchivo({ doc, onActualizar }) {
               👁 Visualizar
             </a>
             <a
-              href={`${API_BASE}/uploads/${doc.archivoPath}`}
+              href={urlArchivo(doc.archivoPath)}
               download={doc.archivoNombre}
               style={{
                 background: `${C.green}18`, border: `1px solid ${C.green}44`,
@@ -670,8 +673,6 @@ export default function MapeoDocumentos() {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroArea,   setFiltroArea]   = useState('')
 
-  useEffect(() => { cargar() }, [])
-
   const cargar = async () => {
     try {
       setCargando(true)
@@ -683,6 +684,15 @@ export default function MapeoDocumentos() {
       setCargando(false)
     }
   }
+
+  useEffect(() => {
+    let vivo = true
+    svc.fetchDocumentos()
+      .then(data => { if (vivo) setDocumentos(data) })
+      .catch(() => { if (vivo) setError('No se pudo conectar con el servidor.') })
+      .finally(() => { if (vivo) setCargando(false) })
+    return () => { vivo = false }
+  }, [])
 
   const aplicarCambiosDocs = (prev, { documento, autoObsoletado, eliminadoId }) => {
     let lista = [...prev]

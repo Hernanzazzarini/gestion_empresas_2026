@@ -42,6 +42,11 @@ const actualizarSeccion1 = async (id, body) => {
 // Completa la sección 2 (insert o update) y marca el contenedor como 'completado'
 const completarSeccion2 = async (id, body) => {
   return repo.withTransaction(async (conn) => {
+    // El lote no puede repetirse en otro contenedor
+    const lote = (body.lote ?? '').trim()
+    if (lote && await repo.existeLoteEnOtro(lote, id, conn)) {
+      throw new AppError('Este lote ya fue cargado en otro contenedor', 409)
+    }
     await repo.upsertSeccion2(conn, id, body)
     await repo.setEstado(conn, id, 'completado')
     return { ok: true }

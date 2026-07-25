@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, Legend,
   LineChart, Line, CartesianGrid,
 } from 'recharts'
 import { Card } from '../../components/ui'
@@ -250,7 +250,7 @@ export default function ReportesReclamos() {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
                     {porEstado.map((entry, i) => (
@@ -258,6 +258,9 @@ export default function ReportesReclamos() {
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
+                  <Legend formatter={(value) => (
+                    <span style={{ color: C.textSecondary, fontSize: 12 }}>{value}</span>
+                  )} />
                 </PieChart>
               </ResponsiveContainer>
             </Card>
@@ -338,7 +341,7 @@ export default function ReportesReclamos() {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                     labelLine={false}
                   >
                     {porTipo.map((entry, i) => (
@@ -346,6 +349,9 @@ export default function ReportesReclamos() {
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
+                  <Legend formatter={(value) => (
+                    <span style={{ color: C.textSecondary, fontSize: 12 }}>{value}</span>
+                  )} />
                 </PieChart>
               </ResponsiveContainer>
             </Card>

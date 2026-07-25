@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/contenedores'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/contenedores`
 
 export const fetchContenedores = async () => {
   const res = await fetch(BASE_URL)
@@ -38,6 +40,9 @@ export const completarSeccion2 = async (id, data) => {
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Error al completar sección 2')
+  if (!res.ok) {
+    const cuerpo = await res.json().catch(() => ({}))
+    throw new Error(cuerpo.error || 'Error al completar sección 2')
+  }
   return res.json()
 }

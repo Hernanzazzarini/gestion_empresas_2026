@@ -5,16 +5,14 @@
 // archivos físicos y notificaciones por email. No conoce SQL (usa el repository)
 // ni HTTP (lanza AppError; el controller traduce a respuesta).
 // ─────────────────────────────────────────────────────────────────────────────
-const path       = require('path')
-const fs         = require('fs')
 const nodemailer = require('nodemailer')
 const repo             = require('../repositories/proveedoresRepository')
 const { AppError }     = require('../middleware/errorHandler')
+const { subir, destruirPorUrl } = require('../cloudinary')
 
 const TIPOS_PROVEEDOR   = ['insumos_mp', 'servicios']
 const AREAS_RESPONSABLE = ['inocuidad', 'logistica', 'produccion']
 const EMAIL_RE          = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const UPLOADS_DIR       = path.join(__dirname, '../../../uploads')
 
 // ─── Mappers snake_case → camelCase ──────────────────────────────────────────
 const formatearDocumento = (row) => ({
@@ -51,19 +49,6 @@ const formatearProveedor = (row, documentos = []) => ({
   creadoEn:           row.created_at,
   documentos:         documentos.map(formatearDocumento),
 })
-
-// ─── Utilidades de archivos ──────────────────────────────────────────────────
-// Borra el archivo físico apuntado por un archivo_path relativo (ej. "proveedores/x.pdf")
-const eliminarArchivoFisico = (relativePath) => {
-  if (!relativePath) return
-  const filePath = path.join(UPLOADS_DIR, relativePath)
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-}
-
-// Borra el archivo recién subido por multer (usado al abortar por un error de validación)
-const descartarSubida = (file) => {
-  if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path)
-}
 
 // ─── Validación / normalización ──────────────────────────────────────────────
 const validarProveedor = (body) => {
@@ -163,15 +148,16 @@ const actualizarProveedor = async (id, body) => {
 const eliminarProveedor = async (id) => {
   const prov = await repo.findById(id)
   if (!prov) throw new AppError('Proveedor no encontrado', 404)
-  // Borrar archivos físicos antes de que el CASCADE elimine las filas
+  // Borrar archivos de Cloudinary antes de que el CASCADE elimine las filas
   const docs = await repo.findDocumentoPaths(id)
-  for (const d of docs) eliminarArchivoFisico(d.archivo_path)
+  for (const d of docs) await destruirPorUrl(d.archivo_path)
   await repo.remove(id)
 }
 
 // ─── Casos de uso: Documentos ────────────────────────────────────────────────
-// Ante cualquier error, se descarta el archivo recién subido para no dejar huérfanos.
+// Ante cualquier error posterior a la subida, se borra de Cloudinary para no dejar huérfanos.
 const crearDocumento = async (proveedorId, body, file) => {
+  let urlSubida = null
   try {
     const prov = await repo.findById(proveedorId)
     if (!prov)                 throw new AppError('Proveedor no encontrado', 404)
@@ -179,11 +165,12 @@ const crearDocumento = async (proveedorId, body, file) => {
     if (!file)                 throw new AppError('El archivo adjunto es obligatorio (PDF, JPG o PNG).')
     validarAlerta(body)
 
+    urlSubida = await subir(file.buffer, 'proveedores')
     const a  = camposAlerta(body)
     const id = await repo.insertDocumento({
       proveedor_id:        proveedorId,
       nombre:              body.nombre.trim(),
-      archivo_path:        `proveedores/${file.filename}`,
+      archivo_path:        urlSubida,
       archivo_nombre:      file.originalname,
       fecha_vencimiento:   a.fecha_vencimiento,
       observaciones:       body.observaciones?.trim() || null,
@@ -196,13 +183,14 @@ const crearDocumento = async (proveedorId, body, file) => {
     const row = await repo.findDocumentoById(id)
     return formatearDocumento(row)
   } catch (err) {
-    descartarSubida(file)
+    if (urlSubida) await destruirPorUrl(urlSubida)
     throw err
   }
 }
 
 // multipart: metadatos + `archivo` opcional (si viene, reemplaza el existente)
 const actualizarDocumento = async (docId, body, file) => {
+  let urlSubida = null
   try {
     const doc = await repo.findDocumentoById(docId)
     if (!doc) throw new AppError('Documento no encontrado', 404)
@@ -211,12 +199,13 @@ const actualizarDocumento = async (docId, body, file) => {
       throw new AppError('El nombre del documento no puede quedar vacío.')
     validarAlerta(body)
 
-    // Reemplazo de archivo (opcional): recién acá borramos el anterior
+    // Reemplazo de archivo (opcional): subimos el nuevo y borramos el anterior de Cloudinary
     let archivoPath   = doc.archivo_path
     let archivoNombre = doc.archivo_nombre
     if (file) {
-      eliminarArchivoFisico(doc.archivo_path)
-      archivoPath   = `proveedores/${file.filename}`
+      urlSubida     = await subir(file.buffer, 'proveedores')
+      await destruirPorUrl(doc.archivo_path)
+      archivoPath   = urlSubida
       archivoNombre = file.originalname
     }
 
@@ -244,7 +233,7 @@ const actualizarDocumento = async (docId, body, file) => {
     const row = await repo.findDocumentoById(docId)
     return formatearDocumento(row)
   } catch (err) {
-    descartarSubida(file)
+    if (urlSubida) await destruirPorUrl(urlSubida)
     throw err
   }
 }
@@ -252,7 +241,7 @@ const actualizarDocumento = async (docId, body, file) => {
 const eliminarDocumento = async (docId) => {
   const doc = await repo.findDocumentoById(docId)
   if (!doc) throw new AppError('Documento no encontrado', 404)
-  eliminarArchivoFisico(doc.archivo_path)
+  await destruirPorUrl(doc.archivo_path)
   await repo.removeDocumento(docId)
 }
 

@@ -1,10 +1,7 @@
-const path       = require('path')
-const fs         = require('fs')
 const nodemailer = require('nodemailer')
 const repo         = require('../repositories/desviosRepository')
 const { AppError } = require('../middleware/errorHandler')
-
-const UPLOADS_DIR = path.join(__dirname, '../../../uploads')
+const { subir, destruirPorUrl } = require('../cloudinary')
 
 const ORIGENES = {
   I:       'Inspecciones',
@@ -66,12 +63,6 @@ const formatear = (row) => {
     creadoEn:              row.creado_en,
     actualizadoEn:         row.actualizado_en,
   }
-}
-
-const eliminarArchivoFisico = (relativePath) => {
-  if (!relativePath) return
-  const full = path.join(UPLOADS_DIR, relativePath)
-  if (fs.existsSync(full)) fs.unlinkSync(full)
 }
 
 // ─── Generador de N° desvío ──────────────────────────────────────────────────
@@ -211,14 +202,12 @@ const agregarEvidencia = async (id, file, tipo) => {
   if (!file)                          throw new AppError('No se recibió ningún archivo')
   if (!['antes', 'despues'].includes(tipo)) throw new AppError('Tipo de evidencia inválido (antes|despues)')
   const existente = await repo.findById(id)
-  if (!existente) {
-    eliminarArchivoFisico(`desvios/${file.filename}`)
-    throw new AppError('Desvío no encontrado', 404)
-  }
+  if (!existente) throw new AppError('Desvío no encontrado', 404)
+  const url = await subir(file.buffer, 'desvios')
   await repo.insertEvidencia({
     desvio_id:      id,
     tipo,
-    archivo_path:   `desvios/${file.filename}`,
+    archivo_path:   url,
     nombre_original: file.originalname,
   })
   return formatear(await repo.findById(id))
@@ -227,7 +216,7 @@ const agregarEvidencia = async (id, file, tipo) => {
 const eliminarEvidencia = async (evidenciaId) => {
   const ev = await repo.findEvidencia(evidenciaId)
   if (!ev) throw new AppError('Evidencia no encontrada', 404)
-  eliminarArchivoFisico(ev.archivo_path)
+  await destruirPorUrl(ev.archivo_path)
   await repo.deleteEvidencia(evidenciaId)
 }
 
@@ -240,7 +229,7 @@ const eliminarDesvio = async (id) => {
     ? (typeof row.evidencias === 'string' ? JSON.parse(row.evidencias) : row.evidencias)
     : []
   for (const ev of (evidencias ?? []).filter(Boolean)) {
-    eliminarArchivoFisico(ev.archivo_path)
+    await destruirPorUrl(ev.archivo_path)
   }
   await repo.remove(id)
 }

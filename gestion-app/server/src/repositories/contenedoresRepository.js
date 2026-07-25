@@ -52,7 +52,7 @@ const findAllWithSecciones = async () => {
   const [rows] = await pool.query(`
     SELECT c.*,
       s1.apto_para_cargar, s1.responsable_inocuidad,
-      s2.lote, s2.calibre, s2.firma_cargador
+      s2.lote, s2.calibre, s2.firma_cargador, s2.destino_descarga
     FROM contenedores c
     LEFT JOIN contenedores_seccion1 s1 ON s1.contenedor_id = c.id
     LEFT JOIN contenedores_seccion2 s2 ON s2.contenedor_id = c.id
@@ -75,6 +75,17 @@ const findSecciones = async (id) => {
 const countContenedores = async (conn = pool) => {
   const [[{ total }]] = await conn.query('SELECT COUNT(*) as total FROM contenedores')
   return total
+}
+
+// ¿Existe ese lote en la sección 2 de OTRO contenedor? (comparación case-insensitive, sin espacios)
+const existeLoteEnOtro = async (lote, contenedorId, conn = pool) => {
+  const [rows] = await conn.query(
+    `SELECT 1 FROM contenedores_seccion2
+      WHERE contenedor_id <> ? AND LOWER(TRIM(lote)) = LOWER(TRIM(?))
+      LIMIT 1`,
+    [contenedorId, lote]
+  )
+  return rows.length > 0
 }
 
 // ─── Escrituras ──────────────────────────────────────────────────────────────
@@ -200,6 +211,7 @@ module.exports = {
   findById,
   findSecciones,
   countContenedores,
+  existeLoteEnOtro,
   insertContenedor,
   insertSeccion1,
   updateSeccion1,

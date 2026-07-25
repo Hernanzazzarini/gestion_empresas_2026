@@ -3,8 +3,12 @@ import { Button, Card, Modal } from '../../components/ui'
 import { colors as C } from '../../components/ui/tokens'
 import * as svc from '../../services/proveedores'
 import { useAuth } from '../../context/AuthContext'
+import { API_ORIGIN } from '../../services/config'
 
-const API_BASE = 'http://localhost:3000'
+const API_BASE = API_ORIGIN
+// Los archivos ahora se guardan como URL absoluta de Cloudinary; las filas viejas
+// guardaban una ruta relativa → se resuelven contra el server (/uploads).
+const urlArchivo = (p) => (p?.startsWith('http') ? p : `${API_BASE}/uploads/${p}`)
 
 const TIPOS_PROVEEDOR = [
   { value: 'insumos_mp', label: 'Insumos-MP' },
@@ -374,7 +378,7 @@ function FilaDoc({ doc, onEditar, onEliminar }) {
 
       <div style={{ display: 'flex', gap: 6 }}>
         {doc.archivoPath && (
-          <a href={`${API_BASE}/uploads/${doc.archivoPath}`} target="_blank" rel="noopener noreferrer"
+          <a href={urlArchivo(doc.archivoPath)} target="_blank" rel="noopener noreferrer"
             style={{
               background: `${C.blue}18`, border: `1px solid ${C.blue}44`, borderRadius: 6,
               padding: '4px 9px', fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: 'none',

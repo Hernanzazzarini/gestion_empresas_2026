@@ -5,13 +5,10 @@
 // "1 vigente + 1 obsoleto por código", manejo de archivos y notificaciones.
 // No conoce SQL (usa el repository) ni HTTP (lanza AppError).
 // ─────────────────────────────────────────────────────────────────────────────
-const path       = require('path')
-const fs         = require('fs')
 const nodemailer = require('nodemailer')
 const repo         = require('../repositories/documentosRepository')
 const { AppError } = require('../middleware/errorHandler')
-
-const UPLOADS_DIR = path.join(__dirname, '../../../uploads')
+const { subir, destruirPorUrl } = require('../cloudinary')
 
 // ─── Mapper snake_case → camelCase ───────────────────────────────────────────
 const formatear = (row) => ({
@@ -35,17 +32,6 @@ const formatear = (row) => ({
   notificacionEnviada:    !!row.notificacion_enviada,
   creadoEn:               row.created_at,
 })
-
-// ─── Utilidades de archivos ──────────────────────────────────────────────────
-const eliminarArchivoFisico = (relativePath) => {
-  if (!relativePath) return
-  const filePath = path.join(UPLOADS_DIR, relativePath)
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-}
-
-const descartarSubida = (file) => {
-  if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path)
-}
 
 // ─── Casos de uso: consultas ─────────────────────────────────────────────────
 const listarDocumentos = async () => {
@@ -179,25 +165,27 @@ const actualizarDocumento = async (id, body) => {
 const eliminarDocumento = async (id) => {
   const doc = await repo.findById(id)
   if (!doc) throw new AppError('Documento no encontrado', 404)
-  eliminarArchivoFisico(doc.archivo_path)
+  await destruirPorUrl(doc.archivo_path)
   await repo.remove(id)
 }
 
 // ─── Casos de uso: archivo adjunto ───────────────────────────────────────────
 const subirArchivo = async (id, file) => {
+  let urlSubida = null
   try {
     if (!file) throw new AppError('No se recibió ningún archivo')
     const doc = await repo.findById(id)
     if (!doc) throw new AppError('Documento no encontrado', 404)
 
-    eliminarArchivoFisico(doc.archivo_path) // reemplaza el anterior si había
+    urlSubida = await subir(file.buffer, 'documentos')
+    await destruirPorUrl(doc.archivo_path) // reemplaza el anterior si había
     await repo.updateArchivo(id, {
-      archivo_path:   `documentos/${file.filename}`,
+      archivo_path:   urlSubida,
       archivo_nombre: file.originalname,
     })
     return formatear(await repo.findById(id))
   } catch (err) {
-    descartarSubida(file)
+    if (urlSubida) await destruirPorUrl(urlSubida)
     throw err
   }
 }
@@ -205,7 +193,7 @@ const subirArchivo = async (id, file) => {
 const eliminarArchivo = async (id) => {
   const doc = await repo.findById(id)
   if (!doc) throw new AppError('Documento no encontrado', 404)
-  eliminarArchivoFisico(doc.archivo_path)
+  await destruirPorUrl(doc.archivo_path)
   await repo.updateArchivo(id, { archivo_path: null, archivo_nombre: null })
   return formatear(await repo.findById(id))
 }

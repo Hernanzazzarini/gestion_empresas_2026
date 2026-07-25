@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+.env
+.env.example
+Dockerfile
+.dockerignore
+# Las fotos subidas viven en un volumen, no en la imagen
+../uploads
+uploads
+*.log
+.DS_Store

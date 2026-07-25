@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Input, Textarea, Modal } from '../../components/ui'
-import { colors as C, prioridades, estadoConfig } from '../../components/ui/tokens'
+import { colors as C } from '../../components/ui/tokens'
 import Badge from '../../components/ui/Badge'
 import PrioridadDot from '../../components/ui/PrioridadDot'
 
@@ -397,7 +397,7 @@ function Err({ children }) {
 }
 
 // ─── COMPONENTE PRINCIPAL DETALLE ─────────────────────────────────────────────
-export default function DetalleOT({ ot, rol, onUpdateOT, onClose }) {
+export default function DetalleOT({ ot, rol, onUpdateOT }) {
   const [modalMant, setModalMant] = useState(false)
   const [modalInocuidad, setModalInocuidad] = useState(false)
   const [modalConformidad, setModalConformidad] = useState(false)

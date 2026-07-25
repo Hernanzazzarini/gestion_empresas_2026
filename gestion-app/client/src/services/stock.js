@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/stock'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/stock`
 
 export const fetchLotes = async () => {
   const res = await fetch(BASE_URL)

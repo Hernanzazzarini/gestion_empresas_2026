@@ -1,10 +1,7 @@
-const path       = require('path')
-const fs         = require('fs')
 const nodemailer = require('nodemailer')
 const repo         = require('../repositories/reclamosRepository')
 const { AppError } = require('../middleware/errorHandler')
-
-const UPLOADS_DIR = path.join(__dirname, '../../../uploads')
+const { subir, destruirPorUrl } = require('../cloudinary')
 
 const TIPOS         = ['Formal', 'No Formal']
 const DESTINATARIOS = ['Produccion', 'Logistica', 'Calidad']
@@ -78,12 +75,6 @@ const formatear = (row) => {
     creadoEn:         row.creado_en,
     actualizadoEn:    row.actualizado_en,
   }
-}
-
-const eliminarArchivoFisico = (relativePath) => {
-  if (!relativePath) return
-  const full = path.join(UPLOADS_DIR, relativePath)
-  if (fs.existsSync(full)) fs.unlinkSync(full)
 }
 
 // ─── Generador de N° reclamo ─────────────────────────────────────────────────
@@ -223,14 +214,12 @@ const agregarAdjunto = async (id, file, tipo) => {
   if (!file)                                    throw new AppError('No se recibió ningún archivo')
   if (!['reclamo', 'evidencia'].includes(tipo)) throw new AppError('Tipo de adjunto inválido (reclamo|evidencia)')
   const existente = await repo.findById(id)
-  if (!existente) {
-    eliminarArchivoFisico(`reclamos/${file.filename}`)
-    throw new AppError('Reclamo no encontrado', 404)
-  }
+  if (!existente) throw new AppError('Reclamo no encontrado', 404)
+  const url = await subir(file.buffer, 'reclamos')
   await repo.insertAdjunto({
     reclamo_id:      id,
     tipo,
-    archivo_path:    `reclamos/${file.filename}`,
+    archivo_path:    url,
     nombre_original: file.originalname,
   })
   return formatear(await repo.findById(id))
@@ -239,7 +228,7 @@ const agregarAdjunto = async (id, file, tipo) => {
 const eliminarAdjunto = async (adjuntoId) => {
   const a = await repo.findAdjunto(adjuntoId)
   if (!a) throw new AppError('Adjunto no encontrado', 404)
-  eliminarArchivoFisico(a.archivo_path)
+  await destruirPorUrl(a.archivo_path)
   await repo.deleteAdjunto(adjuntoId)
 }
 
@@ -251,7 +240,7 @@ const eliminarReclamo = async (id) => {
     ? (typeof row.adjuntos === 'string' ? JSON.parse(row.adjuntos) : row.adjuntos)
     : []
   for (const a of (adjuntos ?? []).filter(Boolean)) {
-    eliminarArchivoFisico(a.archivo_path)
+    await destruirPorUrl(a.archivo_path)
   }
   await repo.remove(id)
 }

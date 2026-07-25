@@ -253,8 +253,9 @@ export default function Usuarios() {
   const [panel, setPanel] = useState(null) // null | 'nuevo' | 'detalle'
   const [sel, setSel] = useState(null)
 
+  // `loading` ya arranca en true, así que el efecto de carga inicial no necesita
+  // (ni debe) llamar setState de forma sincrónica.
   const cargar = useCallback(async () => {
-    setLoading(true)
     try { setUsuarios(await listarUsuarios()) } finally { setLoading(false) }
   }, [])
 

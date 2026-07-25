@@ -1,0 +1,41 @@
+# ─── PRODUCCIÓN ──────────────────────────────────────────────────────────────
+# client = build estático servido por Nginx (puerto 8080), que además hace de
+# proxy hacia /api y /uploads del server. El server NO expone puerto al host:
+# sólo Nginx lo alcanza por la red interna de Docker.
+# La base MySQL sigue siendo la del host (host.docker.internal).
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml down
+#
+# App:  http://localhost:8080
+
+services:
+  server:
+    build:
+      context: ./gestion-app/server
+      target: prod
+    env_file:
+      - ./gestion-app/server/.env
+    environment:
+      DB_HOST: host.docker.internal
+      NODE_ENV: production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./gestion-app/uploads:/uploads
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./gestion-app/client
+      target: prod
+      args:
+        # Vacío → el frontend usa rutas relativas (/api, /uploads) y Nginx proxea.
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    restart: unless-stopped

@@ -1,23 +1,8 @@
 const multer = require('multer')
-const path   = require('path')
-const fs     = require('fs')
 
-// Crear carpeta si no existe
-const uploadDir = path.join(__dirname, '../../uploads/contenedores')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir)
-  },
-  filename: (req, file, cb) => {
-    const ext       = path.extname(file.originalname)
-    const nombre    = `foto_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`
-    cb(null, nombre)
-  },
-})
+// Fotos de contenedores → suben a Cloudinary (ver src/cloudinary.js). Guardamos el
+// buffer en memoria y la ruta lo sube; no se escribe a disco (efímero en Render).
+const storage = multer.memoryStorage()
 
 const upload = multer({
   storage,
@@ -32,4 +17,4 @@ const upload = multer({
   },
 })
 
-module.exports = { upload, uploadDir }
+module.exports = { upload }

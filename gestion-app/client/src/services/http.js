@@ -2,7 +2,6 @@
 // y avisa (evento 'auth:401') cuando el servidor rechaza por sesión inválida.
 // Se instala una sola vez; los servicios existentes siguen usando fetch normal.
 
-const API_ORIGIN = 'http://localhost:3000'
 const TOKEN_KEY = 'gp_token'
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY)
@@ -18,7 +17,9 @@ export function instalarInterceptor() {
 
   window.fetch = async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input?.url || ''
-    const esApi = url.startsWith(API_ORIGIN) && !url.includes('/api/auth/login')
+    // Detecta llamadas a la API tanto con URL absoluta (dev: http://localhost:3000/api/…)
+    // como relativa (prod: /api/…, mismo origen detrás de Nginx).
+    const esApi = url.includes('/api/') && !url.includes('/api/auth/login')
 
     if (esApi) {
       const token = getToken()

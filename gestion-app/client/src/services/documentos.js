@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/documentos'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/documentos`
 
 export const fetchDocumentos = async () => {
   const res = await fetch(BASE_URL)

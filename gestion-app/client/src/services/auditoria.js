@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:3000/api/auditoria'
+import { API_URL } from './config'
+
+const BASE_URL = `${API_URL}/auditoria`
 
 const handleRes = async (res) => {
   const data = await res.json().catch(() => ({}))

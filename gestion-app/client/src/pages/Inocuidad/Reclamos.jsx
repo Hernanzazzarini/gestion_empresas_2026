@@ -6,8 +6,12 @@ import {
   listarReclamos, obtenerReclamo, crearReclamo, actualizarReclamo,
   cambiarEstado, agregarAdjunto, eliminarAdjunto, eliminarReclamo, notificarManual,
 } from '../../services/reclamos'
+import { UPLOADS_URL } from '../../services/config'
 
-const API_UPLOADS = 'http://localhost:3000/uploads'
+const API_UPLOADS = UPLOADS_URL
+// Los archivos ahora se guardan como URL absoluta de Cloudinary; las filas viejas
+// guardaban una ruta relativa → se resuelven contra UPLOADS_URL.
+const urlArchivo = (p) => (p?.startsWith('http') ? p : `${API_UPLOADS}/${p}`)
 
 // Paleta del PDF: mismo tema oscuro que el checklist/desvíos, pero con el
 // acento celeste que identifica a Reclamos.
@@ -415,7 +419,7 @@ const exportarPDF = async (reclamo) => {
 
     for (const a of adjuntos.filter(x => esImagen(x.archivo_path))) {
       try {
-        const url  = `${API_UPLOADS}/${a.archivo_path}`
+        const url  = urlArchivo(a.archivo_path)
         const resp = await fetch(url)
         const blob = await resp.blob()
         const dataUrl = await new Promise(resolve => {
@@ -460,12 +464,12 @@ const AdjuntosBloque = ({ titulo, tipo, adjuntos, onUpload, onDelete, uploading,
         {adjuntos.map(a => (
           <div key={a.id} style={{ position: 'relative' }}>
             {esImagen(a.archivo_path) ? (
-              <a href={`${API_UPLOADS}/${a.archivo_path}`} target="_blank" rel="noreferrer">
-                <img src={`${API_UPLOADS}/${a.archivo_path}`} alt={a.nombre_original}
+              <a href={urlArchivo(a.archivo_path)} target="_blank" rel="noreferrer">
+                <img src={urlArchivo(a.archivo_path)} alt={a.nombre_original}
                   style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #2a3045' }} />
               </a>
             ) : (
-              <a href={`${API_UPLOADS}/${a.archivo_path}`} target="_blank" rel="noreferrer"
+              <a href={urlArchivo(a.archivo_path)} target="_blank" rel="noreferrer"
                 style={{
                   width: 160, height: 120, borderRadius: 8, border: '1px solid #2a3045',
                   background: '#0f1117', display: 'flex', flexDirection: 'column',

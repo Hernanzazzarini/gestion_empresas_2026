@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
   LineChart, Line, CartesianGrid,
 } from 'recharts'
 import { Card } from '../../components/ui'

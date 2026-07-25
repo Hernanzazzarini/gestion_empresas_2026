@@ -429,19 +429,16 @@ export default function StockLotes() {
   const [loteBajaTotal, setLoteBajaTotal] = useState(null)
   const [filtro, setFiltro]           = useState('')
 
-  useEffect(() => { cargar() }, [])
-
-  const cargar = async () => {
-    try {
-      setCargando(true)
-      setError('')
-      setLotes(await svc.fetchLotes())
-    } catch {
-      setError('No se pudo conectar con el servidor.')
-    } finally {
-      setCargando(false)
-    }
+  // Cadena de promesas (no async/await con try-catch): así ningún setState puede
+  // ejecutarse de forma sincrónica dentro del efecto (todos van en callbacks).
+  const cargar = () => {
+    svc.fetchLotes()
+      .then(data => { setLotes(data); setError('') })
+      .catch(() => setError('No se pudo conectar con el servidor.'))
+      .finally(() => setCargando(false))
   }
+
+  useEffect(() => { cargar() }, [])
 
   const handleCrear = async (form) => {
     const nuevo = await svc.crearLote(form)
