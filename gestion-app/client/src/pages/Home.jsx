@@ -129,14 +129,22 @@ export default function Home() {
   ]
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div style={{
+      maxWidth: 1000,
+      margin: '0 auto',
+      // Ocupa el alto disponible (viewport − topbar 60px − padding 28px×2 del layout)
+      // para que el footer quede visible sin scrollear la página.
+      height: 'calc(100vh - 116px)',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
       <style>{`
         @keyframes gpFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes gpPulse  { 0%,100% { opacity: 0.35; } 50% { opacity: 0.7; } }
       `}</style>
 
       {/* HEADER */}
-      <div style={{ marginBottom: 36 }}>
+      <div style={{ marginBottom: 20, flexShrink: 0 }}>
         <div style={{
           fontSize: 13, color: '#f59e0b', fontWeight: 700,
           letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8,
@@ -171,7 +179,8 @@ export default function Home() {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 14,
-        marginBottom: 36,
+        marginBottom: 20,
+        flexShrink: 0,
       }}>
         {stats.map(stat => (
           <div key={stat.label} style={{
@@ -205,7 +214,7 @@ export default function Home() {
       </div>
 
       {/* MÓDULOS */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 12, flexShrink: 0 }}>
         <h2 style={{
           fontSize: 16, fontWeight: 800, color: '#94a3b8',
           textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0,
@@ -214,29 +223,99 @@ export default function Home() {
         </h2>
       </div>
 
-      {modulosVisibles.length === 0 ? (
-        <div style={{
-          background: '#181c27', border: '1px dashed #2a3045', borderRadius: 12,
-          padding: '40px 24px', textAlign: 'center', color: '#64748b',
-        }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
-          <div style={{ fontSize: 14 }}>
-            No tenés módulos habilitados. Pedile acceso al administrador del sistema.
+      {/* Área de módulos: crece para llenar el espacio y scrollea internamente
+          sólo si las tarjetas no entran, dejando header y footer siempre visibles. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
+        {modulosVisibles.length === 0 ? (
+          <div style={{
+            background: '#181c27', border: '1px dashed #2a3045', borderRadius: 12,
+            padding: '40px 24px', textAlign: 'center', color: '#64748b',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontSize: 14 }}>
+              No tenés módulos habilitados. Pedile acceso al administrador del sistema.
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 16,
+          }}>
+            {modulosVisibles.map((mod, i) => (
+              <ModuleCard key={mod.title} mod={mod} onNavigate={navigate} indice={i} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Footer />
+    </div>
+  )
+}
+
+function Footer() {
+  const año = new Date().getFullYear()
+
+  return (
+    <footer style={{
+      marginTop: 16,
+      paddingTop: 16,
+      borderTop: '1px solid #2a3045',
+      flexShrink: 0,
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16,
+      }}>
+        {/* Marca */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>⚙️</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>
+              GestiónPro
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>
+              Sistema integral de gestión empresarial
+            </div>
           </div>
         </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 16,
-        }}>
-          {modulosVisibles.map((mod, i) => (
-            <ModuleCard key={mod.title} mod={mod} onNavigate={navigate} indice={i} />
-          ))}
-        </div>
-      )}
 
-    </div>
+        {/* Estado + versión */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%', background: '#10b981',
+              boxShadow: '0 0 8px #10b981', display: 'inline-block',
+            }} />
+            Operativo
+          </span>
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: '#64748b',
+            background: '#181c27', border: '1px solid #2a3045',
+            borderRadius: 20, padding: '3px 10px',
+            fontFamily: "'Courier New', monospace",
+          }}>
+            v1.0.0
+          </span>
+        </div>
+      </div>
+
+      {/* Línea legal */}
+      <div style={{
+        marginTop: 20,
+        textAlign: 'center',
+        fontSize: 12,
+        color: '#334155',
+      }}>
+        © {año} GestiónPro · Todos los derechos reservados
+        <span style={{ margin: '0 8px', color: '#2a3045' }}>·</span>
+        Desarrollado por <span style={{ color: '#f59e0b', fontWeight: 700 }}>DevZazzariniH</span>
+      </div>
+    </footer>
   )
 }
 
