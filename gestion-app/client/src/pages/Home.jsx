@@ -129,18 +129,44 @@ export default function Home() {
   ]
 
   return (
-    <div style={{
-      maxWidth: 1000,
-      margin: '0 auto',
-      // Ocupa el alto disponible (viewport − topbar 60px − padding 28px×2 del layout)
-      // para que el footer quede visible sin scrollear la página.
-      height: 'calc(100vh - 116px)',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <div className="gp-home">
       <style>{`
         @keyframes gpFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes gpPulse  { 0%,100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+
+        /* Layout base (desktop): ocupa el alto disponible (viewport − topbar 60px −
+           padding 28px×2 del layout) para que el footer se vea sin scrollear. */
+        .gp-home {
+          max-width: 1000px;
+          margin: 0 auto;
+          height: calc(100vh - 116px);
+          display: flex;
+          flex-direction: column;
+        }
+        .gp-modules-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+
+        /* MÓVIL / TABLET (≤820px): la app usa el ancho completo, los stats se
+           compactan en 3 columnas chicas y la página fluye con scroll natural. */
+        @media (max-width: 820px) {
+          .gp-home {
+            height: auto;
+            min-height: calc(100vh - 116px);
+          }
+          .gp-modules-scroll { overflow-y: visible; padding-right: 0; }
+          .gp-stats { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+          .gp-stat { padding: 12px 10px !important; }
+          .gp-stat-icon { font-size: 18px !important; margin-bottom: 2px !important; }
+          .gp-stat-value { font-size: 20px !important; }
+          .gp-stat-label { font-size: 10px !important; }
+          .gp-hgreeting { font-size: 26px !important; }
+          .gp-modules-grid { grid-template-columns: 1fr !important; }
+          .gp-footer-top { flex-direction: column; align-items: flex-start !important; gap: 12px !important; }
+        }
+
+        /* MÓVIL chico (≤400px): stats en 2 columnas para que no queden apretados. */
+        @media (max-width: 400px) {
+          .gp-stats { grid-template-columns: repeat(2, 1fr) !important; }
+        }
       `}</style>
 
       {/* HEADER */}
@@ -151,7 +177,7 @@ export default function Home() {
         }}>
           Panel Principal
         </div>
-        <h1 style={{
+        <h1 className="gp-hgreeting" style={{
           fontSize: 32, fontWeight: 900, color: '#f1f5f9',
           margin: 0, letterSpacing: '-0.02em',
         }}>
@@ -175,7 +201,7 @@ export default function Home() {
       </div>
 
       {/* STATS */}
-      <div style={{
+      <div className="gp-stats" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: 14,
@@ -183,27 +209,27 @@ export default function Home() {
         flexShrink: 0,
       }}>
         {stats.map(stat => (
-          <div key={stat.label} style={{
+          <div key={stat.label} className="gp-stat" style={{
             background: '#181c27',
             border: '1px solid #2a3045',
             borderRadius: 12,
             padding: '18px 20px',
           }}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>{stat.icon}</div>
+            <div className="gp-stat-icon" style={{ fontSize: 22, marginBottom: 6 }}>{stat.icon}</div>
             {stat.cargando ? (
               <div style={{
                 width: 40, height: 28, borderRadius: 6, background: '#2a3045',
                 animation: 'gpPulse 1.2s ease-in-out infinite',
               }} />
             ) : (
-              <div style={{
+              <div className="gp-stat-value" style={{
                 fontSize: 28, fontWeight: 900, color: '#f1f5f9',
                 fontFamily: "'Courier New', monospace", lineHeight: 1,
               }}>
                 {stat.value ?? '—'}
               </div>
             )}
-            <div style={{
+            <div className="gp-stat-label" style={{
               fontSize: 12, color: '#64748b', marginTop: 4,
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
@@ -223,9 +249,10 @@ export default function Home() {
         </h2>
       </div>
 
-      {/* Área de módulos: crece para llenar el espacio y scrollea internamente
-          sólo si las tarjetas no entran, dejando header y footer siempre visibles. */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
+      {/* Área de módulos: en desktop crece para llenar el espacio y scrollea
+          internamente si las tarjetas no entran (header y footer siempre visibles);
+          en móvil fluye con la página (scroll natural). */}
+      <div className="gp-modules-scroll">
         {modulosVisibles.length === 0 ? (
           <div style={{
             background: '#181c27', border: '1px dashed #2a3045', borderRadius: 12,
@@ -237,7 +264,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div style={{
+          <div className="gp-modules-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: 16,
@@ -264,7 +291,7 @@ function Footer() {
       borderTop: '1px solid #2a3045',
       flexShrink: 0,
     }}>
-      <div style={{
+      <div className="gp-footer-top" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
