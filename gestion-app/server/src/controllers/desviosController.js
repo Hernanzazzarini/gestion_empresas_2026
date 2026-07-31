@@ -45,6 +45,10 @@ const notificar = asyncHandler(async (req, res) => {
   res.json(await service.procesarNotificaciones(true))
 })
 
+const notificarLimite = asyncHandler(async (req, res) => {
+  res.json(await service.procesarNotificacionesLimite(true))
+})
+
 module.exports = {
   listar,
   obtener,
@@ -55,4 +59,5 @@ module.exports = {
   eliminarEvidencia,
   eliminar,
   notificar,
+  notificarLimite,
 }

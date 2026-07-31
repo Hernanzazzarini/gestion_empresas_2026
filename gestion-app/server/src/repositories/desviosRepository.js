@@ -41,14 +41,16 @@ const insert = async (d) => {
     `INSERT INTO desvios
        (nro_desvio, fecha, anio, origen, area, descripcion, accion_correctiva,
         responsable_correctiva, metodo_causa_raiz, causa_raiz_data, accion_preventiva,
-        gravedad, responsable_verificar, estado, fecha_estado, destinatarios)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        gravedad, responsable_verificar, estado, fecha_estado,
+        fecha_limite_respuesta, dias_alerta_limite, destinatarios)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       d.nro_desvio, d.fecha, d.anio, d.origen, d.area,
       d.descripcion, d.accion_correctiva, d.responsable_correctiva,
       d.metodo_causa_raiz, JSON.stringify(d.causa_raiz_data),
       d.accion_preventiva, d.gravedad, d.responsable_verificar,
-      d.estado, d.fecha_estado, d.destinatarios,
+      d.estado, d.fecha_estado,
+      d.fecha_limite_respuesta, d.dias_alerta_limite, d.destinatarios,
     ]
   )
   return result.insertId
@@ -60,13 +62,15 @@ const update = async (id, d) => {
        fecha=?, anio=?, origen=?, area=?, descripcion=?, accion_correctiva=?,
        responsable_correctiva=?, metodo_causa_raiz=?, causa_raiz_data=?,
        accion_preventiva=?, gravedad=?, responsable_verificar=?,
-       estado=?, fecha_estado=?, destinatarios=?
+       estado=?, fecha_estado=?, fecha_limite_respuesta=?, dias_alerta_limite=?,
+       destinatarios=?, notificacion_limite_enviada=?
      WHERE id=?`,
     [
       d.fecha, d.anio, d.origen, d.area, d.descripcion, d.accion_correctiva,
       d.responsable_correctiva, d.metodo_causa_raiz, JSON.stringify(d.causa_raiz_data),
       d.accion_preventiva, d.gravedad, d.responsable_verificar,
-      d.estado, d.fecha_estado, d.destinatarios, id,
+      d.estado, d.fecha_estado, d.fecha_limite_respuesta, d.dias_alerta_limite,
+      d.destinatarios, d.notificacion_limite_enviada, id,
     ]
   )
 }
@@ -112,6 +116,24 @@ const findPendientesNotificacion = async (forzar) => {
   return rows
 }
 
+// Desvíos con fecha límite de respuesta y destinatarios cargados, aún sin cerrar.
+// El filtro por ventana de alerta (dias_alerta_limite / vencidos) lo aplica el service.
+const findPendientesLimite = async (forzar) => {
+  const sql = `
+    SELECT * FROM desvios
+    WHERE fecha_limite_respuesta IS NOT NULL
+      AND destinatarios IS NOT NULL AND destinatarios != ''
+      AND estado != 'Cerrado'
+      ${forzar ? '' : 'AND notificacion_limite_enviada = 0'}
+  `
+  const [rows] = await pool.query(sql)
+  return rows
+}
+
+const marcarNotificadoLimite = async (id) => {
+  await pool.query('UPDATE desvios SET notificacion_limite_enviada = 1 WHERE id=?', [id])
+}
+
 const remove = async (id) => {
   await pool.query('DELETE FROM desvios WHERE id=?', [id])
 }
@@ -128,5 +150,7 @@ module.exports = {
   findEvidencia,
   deleteEvidencia,
   findPendientesNotificacion,
+  findPendientesLimite,
+  marcarNotificadoLimite,
   remove,
 }

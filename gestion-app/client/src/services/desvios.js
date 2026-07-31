@@ -54,3 +54,7 @@ export const eliminarDesvio = (id) =>
 
 export const notificarManual = () =>
   fetch(`${BASE_URL}/notificar/email`, { method: 'POST' }).then(handleRes)
+
+// Avisos de fecha límite de respuesta (próxima a vencer o vencida)
+export const notificarLimite = () =>
+  fetch(`${BASE_URL}/notificar/limite`, { method: 'POST' }).then(handleRes)

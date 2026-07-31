@@ -18,8 +18,11 @@ CREATE TABLE IF NOT EXISTS desvios (
   responsable_verificar   VARCHAR(255) NOT NULL,
   estado                  ENUM('Abierto','En tratamiento','Cerrado') NOT NULL DEFAULT 'Abierto',
   fecha_estado            DATE         NOT NULL,
+  fecha_limite_respuesta  DATE,
+  dias_alerta_limite      INT          NOT NULL DEFAULT 7,
   destinatarios           TEXT,
   notificacion_enviada    TINYINT      NOT NULL DEFAULT 0,
+  notificacion_limite_enviada TINYINT  NOT NULL DEFAULT 0,
   creado_en               TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   actualizado_en          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
