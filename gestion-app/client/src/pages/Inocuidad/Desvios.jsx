@@ -39,6 +39,18 @@ const ESTADOS   = ['Abierto', 'En tratamiento', 'Cerrado']
 const gravedadColor = { Menor: '#16a34a', Mayor: '#d97706', Critico: '#dc2626' }
 const estadoColor   = { 'Abierto': '#3b82f6', 'En tratamiento': '#eab308', 'Cerrado': '#16a34a' }
 
+// Estado del plazo de respuesta, para el badge del detalle. Null si no aplica
+// (sin fecha límite o desvío ya cerrado).
+const estadoLimite = (fechaLimite, estado) => {
+  if (!fechaLimite || estado === 'Cerrado') return null
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+  const dias = Math.ceil((new Date(fechaLimite) - hoy) / (1000 * 60 * 60 * 24))
+  if (dias < 0)  return { label: `Vencido hace ${Math.abs(dias)} d`, color: '#dc2626' }
+  if (dias === 0) return { label: 'Vence hoy', color: '#dc2626' }
+  if (dias <= 7)  return { label: `Vence en ${dias} d`, color: '#d97706' }
+  return { label: `Plazo: ${dias} d`, color: '#64748b' }
+}
+
 const Badge = ({ label, color }) => (
   <span style={{
     display: 'inline-block', padding: '2px 10px', borderRadius: 20,
@@ -114,6 +126,7 @@ const FORM_INIT = {
   metodo_causa_raiz: '5porques', causa_raiz_data: {},
   accion_preventiva: '', gravedad: '', responsable_verificar: '',
   estado: 'Abierto', fecha_estado: '', destinatarios: '',
+  fecha_limite_respuesta: '', dias_alerta_limite: 7,
 }
 
 const FormDesvio = ({ initial, onSuccess, onClose }) => {
@@ -191,6 +204,35 @@ const FormDesvio = ({ initial, onSuccess, onClose }) => {
           <div>
             <label style={label}>Fecha de estado *</label>
             <input type="date" style={input} value={form.fecha_estado} onChange={set('fecha_estado')} required />
+          </div>
+        </div>
+        <div style={{ ...grid3, marginTop: 16 }}>
+          <div>
+            <label style={label}>Fecha límite de respuesta</label>
+            <input
+              type="date"
+              style={input}
+              value={form.fecha_limite_respuesta || ''}
+              min={form.fecha || undefined}
+              onChange={set('fecha_limite_respuesta')}
+            />
+          </div>
+          <div>
+            <label style={label}>Avisar días antes</label>
+            <input
+              type="number"
+              min="0"
+              style={input}
+              value={form.dias_alerta_limite ?? 7}
+              onChange={set('dias_alerta_limite')}
+              disabled={!form.fecha_limite_respuesta}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+              Si cargás una fecha límite, se envía un aviso por email a los destinatarios
+              cuando el plazo esté por vencer y también si vence sin respuesta.
+            </p>
           </div>
         </div>
       </div>
@@ -366,6 +408,9 @@ const exportarPDF = async (desvio) => {
     ['Gravedad',    desvio.gravedad],
     ['Estado',      desvio.estado],
     ['Fecha estado', desvio.fechaEstado ? new Date(desvio.fechaEstado).toLocaleDateString('es-AR') : '—'],
+    ['Fecha límite de respuesta', desvio.fechaLimiteRespuesta
+      ? new Date(desvio.fechaLimiteRespuesta).toLocaleDateString('es-AR')
+      : '—'],
   ])
 
   addSection('Descripción del desvío', [['Descripción', desvio.descripcion]])
@@ -505,6 +550,10 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
         <span style={{ color: '#94a3b8', fontSize: 13 }}>{desvio.nroDesvio}</span>
         <Badge label={desvio.gravedad} color={gravedadColor[desvio.gravedad] || '#64748b'} />
         <Badge label={desvio.estado}   color={estadoColor[desvio.estado] || '#64748b'} />
+        {(() => {
+          const lim = estadoLimite(desvio.fechaLimiteRespuesta, desvio.estado)
+          return lim ? <Badge label={lim.label} color={lim.color} /> : null
+        })()}
       </div>
 
       {/* Info general */}
@@ -657,6 +706,15 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
             </button>
             <span style={{ fontSize: 12, color: '#64748b' }}>{desvio.destinatarios}</span>
           </div>
+          {desvio.fechaLimiteRespuesta && (
+            <p style={{ fontSize: 12, color: '#64748b', marginTop: 10, marginBottom: 0 }}>
+              Fecha límite de respuesta:{' '}
+              <strong style={{ color: '#e2e8f0' }}>
+                {new Date(desvio.fechaLimiteRespuesta).toLocaleDateString('es-AR')}
+              </strong>
+              {' '}— se avisa por email {desvio.diasAlertaLimite} día(s) antes y al vencer.
+            </p>
+          )}
           {notifMsg && <p style={{ fontSize: 13, color: '#86efac', marginTop: 8 }}>{notifMsg}</p>}
         </div>
       )}
@@ -956,6 +1014,8 @@ export default function Desvios() {
               estado: selected.estado || 'Abierto',
               fecha_estado: selected.fechaEstado || '',
               destinatarios: selected.destinatarios || '',
+              fecha_limite_respuesta: selected.fechaLimiteRespuesta || '',
+              dias_alerta_limite: selected.diasAlertaLimite ?? 7,
             } : null}
             onSuccess={handleSuccess}
             onClose={() => setPanel(null)}

@@ -55,14 +55,48 @@ const formatear = (row) => {
     responsableVerificar:  row.responsable_verificar,
     estado:                row.estado,
     fechaEstado:           row.fecha_estado ? new Date(row.fecha_estado).toISOString().slice(0, 10) : null,
+    fechaLimiteRespuesta:  row.fecha_limite_respuesta
+                             ? new Date(row.fecha_limite_respuesta).toISOString().slice(0, 10)
+                             : null,
+    diasAlertaLimite:      row.dias_alerta_limite ?? 7,
     destinatarios:         row.destinatarios || '',
     notificacionEnviada:   !!row.notificacion_enviada,
+    notificacionLimiteEnviada: !!row.notificacion_limite_enviada,
     evidencias,
     evidenciasAntes:       row.evidencias_antes   ?? 0,
     evidenciasDespues:     row.evidencias_despues ?? 0,
     creadoEn:              row.creado_en,
     actualizadoEn:         row.actualizado_en,
   }
+}
+
+const DIAS_ALERTA_LIMITE_DEFAULT = 7
+
+// Días que faltan hasta una fecha YYYY-MM-DD (negativo = ya vencida).
+const diasHasta = (fecha) => {
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  return Math.ceil((new Date(fecha) - hoy) / (1000 * 60 * 60 * 24))
+}
+
+// Normaliza y valida los campos de la fecha límite de respuesta (ambos opcionales).
+const normalizarLimite = ({ fecha_limite_respuesta, dias_alerta_limite }, fechaDesvio) => {
+  if (!fecha_limite_respuesta) {
+    return { fecha_limite_respuesta: null, dias_alerta_limite: DIAS_ALERTA_LIMITE_DEFAULT }
+  }
+  if (Number.isNaN(new Date(fecha_limite_respuesta).getTime())) {
+    throw new AppError('La fecha límite de respuesta no es válida')
+  }
+  if (fechaDesvio && fecha_limite_respuesta < fechaDesvio) {
+    throw new AppError('La fecha límite de respuesta no puede ser anterior a la fecha del desvío')
+  }
+  const dias = dias_alerta_limite === undefined || dias_alerta_limite === ''
+    ? DIAS_ALERTA_LIMITE_DEFAULT
+    : Number(dias_alerta_limite)
+  if (!Number.isInteger(dias) || dias < 0) {
+    throw new AppError('Los días de alerta deben ser un número entero mayor o igual a 0')
+  }
+  return { fecha_limite_respuesta, dias_alerta_limite: dias }
 }
 
 // ─── Generador de N° desvío ──────────────────────────────────────────────────
@@ -108,6 +142,7 @@ const crearDesvio = async (body) => {
   const anio      = new Date(fecha).getFullYear()
   const nroDesvio = await generarNro()
   const metodo    = metodo_causa_raiz || '5porques'
+  const limite    = normalizarLimite(body, fecha)
 
   const id = await repo.insert({
     nro_desvio:            nroDesvio,
@@ -125,6 +160,8 @@ const crearDesvio = async (body) => {
     responsable_verificar: responsable_verificar.trim(),
     estado,
     fecha_estado,
+    fecha_limite_respuesta: limite.fecha_limite_respuesta,
+    dias_alerta_limite:     limite.dias_alerta_limite,
     destinatarios:         destinatarios?.trim() || null,
   })
 
@@ -168,6 +205,15 @@ const actualizarDesvio = async (id, body) => {
 
   const anio   = new Date(fecha).getFullYear()
   const metodo = metodo_causa_raiz || '5porques'
+  const limite = normalizarLimite(body, fecha)
+
+  // Si cambia la fecha límite, se rehabilita la alerta para el nuevo plazo.
+  const limiteAnterior = existente.fecha_limite_respuesta
+    ? new Date(existente.fecha_limite_respuesta).toISOString().slice(0, 10)
+    : null
+  const notificacionLimite = limite.fecha_limite_respuesta === limiteAnterior
+    ? (existente.notificacion_limite_enviada ? 1 : 0)
+    : 0
 
   await repo.update(id, {
     fecha, anio, origen, area,
@@ -181,7 +227,10 @@ const actualizarDesvio = async (id, body) => {
     responsable_verificar:  responsable_verificar.trim(),
     estado,
     fecha_estado,
+    fecha_limite_respuesta: limite.fecha_limite_respuesta,
+    dias_alerta_limite:     limite.dias_alerta_limite,
     destinatarios:          destinatarios?.trim() || null,
+    notificacion_limite_enviada: notificacionLimite,
   })
 
   return formatear(await repo.findById(id))
@@ -277,6 +326,8 @@ const enviarEmailDesvio = async (desvio) => {
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Responsable</td><td style="padding:8px 12px">${desvio.responsableCorrectiva}</td></tr>
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Acción Preventiva</td><td style="padding:8px 12px">${desvio.accionPreventiva}</td></tr>
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Responsable Verificar</td><td style="padding:8px 12px">${desvio.responsableVerificar}</td></tr>
+          ${desvio.fechaLimiteRespuesta ? `
+          <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Fecha límite de respuesta</td><td style="padding:8px 12px;color:#dc2626;font-weight:700">${new Date(desvio.fechaLimiteRespuesta).toLocaleDateString('es-AR')}</td></tr>` : ''}
         </table>
         <p style="margin-top:20px;color:#6b7280;font-size:12px">— Sistema GestiónPro</p>
       </div>`,
@@ -327,6 +378,70 @@ const procesarNotificaciones = async (forzar = false) => {
   return { enviados, mensaje: `Se enviaron ${enviados} notificación(es) de desvíos.` }
 }
 
+// ─── Notificaciones de fecha límite de respuesta ─────────────────────────────
+// Avisa cuando el plazo de respuesta está por vencer (dentro de `dias_alerta_limite`)
+// o ya venció. Excluye los desvíos cerrados. forzar=true re-envía aunque ya se
+// haya notificado; forzar=false (cron) envía una sola vez por fecha límite.
+const procesarNotificacionesLimite = async (forzar = false) => {
+  const rows = await repo.findPendientesLimite(forzar)
+
+  const enVentana = rows.filter(row =>
+    diasHasta(row.fecha_limite_respuesta) <= (row.dias_alerta_limite ?? DIAS_ALERTA_LIMITE_DEFAULT)
+  )
+
+  if (enVentana.length === 0) {
+    return { enviados: 0, mensaje: 'No hay desvíos con fecha límite de respuesta próxima a vencer.' }
+  }
+
+  const transporter = crearTransporter()
+  let enviados = 0
+
+  for (const row of enVentana) {
+    const desvio        = formatear(row)
+    const destinatarios = desvio.destinatarios.split(',').map(e => e.trim()).filter(Boolean)
+    if (destinatarios.length === 0) continue
+
+    const dias     = diasHasta(desvio.fechaLimiteRespuesta)
+    const vencido  = dias < 0
+    const fechaStr = new Date(desvio.fechaLimiteRespuesta).toLocaleDateString('es-AR')
+    const color    = vencido ? '#dc2626' : '#d97706'
+    const titulo   = vencido
+      ? `⛔ Plazo de respuesta VENCIDO — ${desvio.nroDesvio}`
+      : `⏰ Plazo de respuesta por vencer — ${desvio.nroDesvio}`
+    const detalle  = vencido
+      ? `El plazo venció hace <strong>${Math.abs(dias)} día(s)</strong> (${fechaStr}).`
+      : dias === 0
+        ? `El plazo vence <strong>hoy</strong> (${fechaStr}).`
+        : `Vence en <strong>${dias} día(s)</strong> — fecha límite: <strong>${fechaStr}</strong>.`
+
+    await transporter.sendMail({
+      from:    process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to:      destinatarios.join(', '),
+      subject: `[GestiónPro] ${vencido ? 'Plazo VENCIDO' : 'Plazo por vencer'}: desvío ${desvio.nroDesvio} — ${desvio.area}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2 style="color:${color}">${titulo}</h2>
+          <p>${detalle}</p>
+          <table style="border-collapse:collapse;width:100%;font-size:14px">
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600;width:40%">N° Desvío</td><td style="padding:8px 12px">${desvio.nroDesvio}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Área</td><td style="padding:8px 12px">${desvio.area}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Gravedad</td><td style="padding:8px 12px;color:${gravedadColor[desvio.gravedad] || '#374151'};font-weight:700">${desvio.gravedad}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Estado</td><td style="padding:8px 12px">${desvio.estado}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Descripción</td><td style="padding:8px 12px">${desvio.descripcion}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Responsable</td><td style="padding:8px 12px">${desvio.responsableCorrectiva}</td></tr>
+            <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Fecha límite</td><td style="padding:8px 12px;color:${color};font-weight:700">${fechaStr}</td></tr>
+          </table>
+          <p style="margin-top:20px;color:#6b7280;font-size:12px">— Sistema GestiónPro</p>
+        </div>`,
+    })
+
+    await repo.marcarNotificadoLimite(row.id)
+    enviados++
+  }
+
+  return { enviados, mensaje: `Se enviaron ${enviados} aviso(s) de fecha límite de desvíos.` }
+}
+
 module.exports = {
   listarDesvios,
   obtenerDesvio,
@@ -337,4 +452,5 @@ module.exports = {
   eliminarEvidencia,
   eliminarDesvio,
   procesarNotificaciones,
+  procesarNotificacionesLimite,
 }
