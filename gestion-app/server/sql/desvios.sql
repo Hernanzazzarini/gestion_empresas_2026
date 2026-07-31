@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS desvios (
   responsable_correctiva  VARCHAR(255) NOT NULL,
   metodo_causa_raiz       ENUM('5porques','espina') NOT NULL DEFAULT '5porques',
   causa_raiz_data         JSON,
-  accion_preventiva       TEXT         NOT NULL,
+  accion_preventiva       TEXT,
   gravedad                ENUM('Menor','Mayor','Critico') NOT NULL,
   responsable_verificar   VARCHAR(255) NOT NULL,
   estado                  ENUM('Abierto','En tratamiento','Cerrado') NOT NULL DEFAULT 'Abierto',
