@@ -239,7 +239,7 @@ const FormDesvio = ({ initial, onSuccess, onClose }) => {
 
       {/* Sección 2 — Descripción */}
       <div style={card}>
-        <p style={sectionTitle}>Descripción del desvío</p>
+        <p style={sectionTitle}>Descripción del desvío *</p>
         <textarea style={{ ...textarea, minHeight: 100 }}
           value={form.descripcion} onChange={set('descripcion')}
           placeholder="Describí el desvío detectado..." required />
@@ -289,9 +289,9 @@ const FormDesvio = ({ initial, onSuccess, onClose }) => {
         <p style={sectionTitle}>Acción preventiva</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label style={label}>Acción preventiva *</label>
+            <label style={label}>Acción preventiva</label>
             <textarea style={textarea} value={form.accion_preventiva} onChange={set('accion_preventiva')}
-              placeholder="Describí la acción preventiva..." required />
+              placeholder="Describí la acción preventiva (opcional)..." />
           </div>
           <div>
             <label style={label}>Responsable de verificar *</label>
@@ -432,7 +432,7 @@ const exportarPDF = async (desvio) => {
   }
 
   addSection('Acción preventiva', [
-    ['Acción preventiva',     desvio.accionPreventiva],
+    ['Acción preventiva',     desvio.accionPreventiva || '—'],
     ['Responsable verificar', desvio.responsableVerificar],
   ])
 
@@ -617,7 +617,9 @@ const DetalleDesvio = ({ desvio: initialDesvio, onClose, onUpdate, onEdit }) => 
       {/* Acción preventiva */}
       <div style={card}>
         <p style={sectionTitle}>Acción preventiva</p>
-        <p style={{ color: '#f1f5f9', fontSize: 14, lineHeight: 1.6 }}>{desvio.accionPreventiva}</p>
+        <p style={{ color: desvio.accionPreventiva ? '#f1f5f9' : '#475569', fontSize: 14, lineHeight: 1.6 }}>
+          {desvio.accionPreventiva || 'Sin acción preventiva definida.'}
+        </p>
         <div style={{ marginTop: 8 }}>
           <InfoRow label="Responsable de verificar" value={desvio.responsableVerificar} />
         </div>

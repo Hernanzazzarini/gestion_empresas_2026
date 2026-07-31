@@ -50,7 +50,7 @@ const formatear = (row) => {
     responsableCorrectiva: row.responsable_correctiva,
     metodoCausaRaiz:       row.metodo_causa_raiz,
     causaRaizData:         causaRaizData,
-    accionPreventiva:      row.accion_preventiva,
+    accionPreventiva:      row.accion_preventiva || '',
     gravedad:              row.gravedad,
     responsableVerificar:  row.responsable_verificar,
     estado:                row.estado,
@@ -125,9 +125,10 @@ const crearDesvio = async (body) => {
     gravedad, responsable_verificar, estado, fecha_estado, destinatarios,
   } = body
 
+  // `accion_preventiva` es opcional; el resto son obligatorios.
   if (!fecha || !origen || !area || !descripcion?.trim() ||
       !accion_correctiva?.trim() || !responsable_correctiva?.trim() ||
-      !accion_preventiva?.trim() || !gravedad || !responsable_verificar?.trim() ||
+      !gravedad || !responsable_verificar?.trim() ||
       !estado || !fecha_estado) {
     throw new AppError('Todos los campos obligatorios deben completarse')
   }
@@ -155,7 +156,7 @@ const crearDesvio = async (body) => {
     responsable_correctiva: responsable_correctiva.trim(),
     metodo_causa_raiz:     metodo,
     causa_raiz_data:       causa_raiz_data ?? null,
-    accion_preventiva:     accion_preventiva.trim(),
+    accion_preventiva:     accion_preventiva?.trim() || null,
     gravedad,
     responsable_verificar: responsable_verificar.trim(),
     estado,
@@ -192,9 +193,10 @@ const actualizarDesvio = async (id, body) => {
     gravedad, responsable_verificar, estado, fecha_estado, destinatarios,
   } = body
 
+  // `accion_preventiva` es opcional; el resto son obligatorios.
   if (!fecha || !origen || !area || !descripcion?.trim() ||
       !accion_correctiva?.trim() || !responsable_correctiva?.trim() ||
-      !accion_preventiva?.trim() || !gravedad || !responsable_verificar?.trim() ||
+      !gravedad || !responsable_verificar?.trim() ||
       !estado || !fecha_estado) {
     throw new AppError('Todos los campos obligatorios deben completarse')
   }
@@ -222,7 +224,7 @@ const actualizarDesvio = async (id, body) => {
     responsable_correctiva: responsable_correctiva.trim(),
     metodo_causa_raiz:      metodo,
     causa_raiz_data:        causa_raiz_data ?? null,
-    accion_preventiva:      accion_preventiva.trim(),
+    accion_preventiva:      accion_preventiva?.trim() || null,
     gravedad,
     responsable_verificar:  responsable_verificar.trim(),
     estado,
@@ -324,7 +326,7 @@ const enviarEmailDesvio = async (desvio) => {
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Descripción</td><td style="padding:8px 12px">${desvio.descripcion}</td></tr>
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Acción Correctiva</td><td style="padding:8px 12px">${desvio.accionCorrectiva}</td></tr>
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Responsable</td><td style="padding:8px 12px">${desvio.responsableCorrectiva}</td></tr>
-          <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Acción Preventiva</td><td style="padding:8px 12px">${desvio.accionPreventiva}</td></tr>
+          <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Acción Preventiva</td><td style="padding:8px 12px">${desvio.accionPreventiva || '—'}</td></tr>
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Responsable Verificar</td><td style="padding:8px 12px">${desvio.responsableVerificar}</td></tr>
           ${desvio.fechaLimiteRespuesta ? `
           <tr><td style="padding:8px 12px;background:#f3f4f6;font-weight:600">Fecha límite de respuesta</td><td style="padding:8px 12px;color:#dc2626;font-weight:700">${new Date(desvio.fechaLimiteRespuesta).toLocaleDateString('es-AR')}</td></tr>` : ''}
